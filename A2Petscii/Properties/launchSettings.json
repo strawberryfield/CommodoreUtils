@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "A2Petscii": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Commodore\\projects\\gestionecc\\articoloMC.txt"
+    }
+  }
+}

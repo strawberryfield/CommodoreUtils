@@ -47,9 +47,10 @@ if (ShouldShowHelp || FilesList.Count == 0)
 
 foreach(string file in FilesList)
 {
+    string filename = OutputFile;
     if(string.IsNullOrWhiteSpace(OutputFile))
     {
-        OutputFile = Path.ChangeExtension(file, ".seq");
+        filename = Path.ChangeExtension(file, ".seq");
     }
     string input = File.ReadAllText(file);
     StringBuilder sb = new();
@@ -57,7 +58,7 @@ foreach(string file in FilesList)
     {
         sb.Append(Charset.PETSCII(c, true));
     }
-    File.AppendAllText(OutputFile, sb.ToString());
+    File.AppendAllText(filename, sb.ToString());
 }
 #endregion
 

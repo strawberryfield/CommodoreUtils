@@ -25,13 +25,16 @@ using System.Text;
 #region main
 bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
+string WrapSizeString = "40";
+int WrapSize = Convert.ToInt16(WrapSizeString);
 string OutputFile = string.Empty;
 
 OptionSet p = new OptionSet()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },
-    { "o|out=", "Output file name", o => OutputFile = o },
+    { "w|wrap=", "Word-wrap at colum (default=40, set to 0 for no wrap", o => WrapSizeString = o },
+    { "o|out=", "Output file name (default same as input with .seq extension)", o => OutputFile = o },
 };
 
 List<string> FilesList = FileHelpers.ExpandWildcards(p.Parse(args));
@@ -45,7 +48,16 @@ if (ShouldShowHelp || FilesList.Count == 0)
     return;
 }
 
-foreach(string file in FilesList)
+if(!string.IsNullOrWhiteSpace(WrapSizeString))
+{
+    WrapSize = CommandLineHelpers.GetIntParameter(WrapSizeString, 40, "Invalid wrap size '{0}' using default 40");
+    if (WrapSize < 0)
+    {
+        WrapSize = 0;
+    }
+}
+
+foreach (string file in FilesList)
 {
     string filename = OutputFile;
     if(string.IsNullOrWhiteSpace(OutputFile))
@@ -53,6 +65,11 @@ foreach(string file in FilesList)
         filename = Path.ChangeExtension(file, ".seq");
     }
     string input = File.ReadAllText(file);
+    if (WrapSize > 0)
+    {
+        input = TextHelpers.WordWrap(input, WrapSize);
+    }
+
     StringBuilder sb = new();
     foreach (char c in input)
     {

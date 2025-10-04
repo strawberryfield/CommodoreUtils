@@ -37,28 +37,35 @@ public static class TextHelpers
     {
         if (string.IsNullOrWhiteSpace(text) || maxLineLength <= 0)
             return text;
-        var words = text.Split(' ');
-        var wrappedText = new StringBuilder();
-        var currentLineLength = 0;
-        foreach (var word in words)
+        StringBuilder wrappedText = new();
+
+        string[] paragraphs = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+        foreach (var paragraph in paragraphs)
         {
-            if (currentLineLength + word.Length + 1 > maxLineLength)
+
+            string[] words = paragraph.Split(' ');
+            int currentLineLength = 0;
+            foreach (var word in words)
             {
-                if (wrappedText.Length > 0)
-                    wrappedText.AppendLine();
-                wrappedText.Append(word);
-                currentLineLength = word.Length;
-            }
-            else
-            {
-                if (currentLineLength > 0)
+                if (currentLineLength + word.Length + 1 > maxLineLength)
                 {
-                    wrappedText.Append(' ');
-                    currentLineLength++;
+                    if (wrappedText.Length > 0)
+                        wrappedText.AppendLine();
+                    wrappedText.Append(word);
+                    currentLineLength = word.Length;
                 }
-                wrappedText.Append(word);
-                currentLineLength += word.Length;
+                else
+                {
+                    if (currentLineLength > 0)
+                    {
+                        wrappedText.Append(' ');
+                        currentLineLength++;
+                    }
+                    wrappedText.Append(word);
+                    currentLineLength += word.Length;
+                }
             }
+            wrappedText.AppendLine();
         }
         return wrappedText.ToString();
     }   

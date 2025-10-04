@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="A2Petscii/Program.cs" company="Casasoft">
+// <copyright file="Pet2Ascii/Program.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
 //     Copyright (c) 2025 All rights reserved.
 // </copyright>
@@ -25,15 +25,12 @@ using System.Text;
 #region main
 bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
-string WrapSizeString = "0";
-int WrapSize = Convert.ToInt16(WrapSizeString);
 string OutputFile = string.Empty;
 
 OptionSet p = new OptionSet()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },
-    { "w|wrap=", "Word-wrap at colum (default=0, set to 0 for no wrap", o => WrapSizeString = o },
     { "o|out=", "Output file name (default same as input with .seq extension)", o => OutputFile = o },
 };
 
@@ -48,32 +45,19 @@ if (ShouldShowHelp || FilesList.Count == 0)
     return;
 }
 
-if(!string.IsNullOrWhiteSpace(WrapSizeString))
-{
-    WrapSize = CommandLineHelpers.GetIntParameter(WrapSizeString, 40, "Invalid wrap size '{0}' using default 40");
-    if (WrapSize < 0)
-    {
-        WrapSize = 0;
-    }
-}
-
 foreach (string file in FilesList)
 {
     string filename = OutputFile;
-    if(string.IsNullOrWhiteSpace(OutputFile))
+    if (string.IsNullOrWhiteSpace(OutputFile))
     {
-        filename = Path.ChangeExtension(file, ".seq");
+        filename = Path.ChangeExtension(file, ".txt");
     }
     string input = File.ReadAllText(file);
-    if (WrapSize > 0)
-    {
-        input = TextHelpers.WordWrap(input, WrapSize);
-    }
 
     StringBuilder sb = new();
     foreach (char c in input)
     {
-        sb.Append(Charset.PETSCII(c, true));
+        sb.Append(Charset.ASCII(c, true));
     }
     File.AppendAllText(filename, sb.ToString());
 }
@@ -82,12 +66,12 @@ foreach (string file in FilesList)
 #region Procedures
 void ShowHelp()
 {
-    Console.WriteLine("Usage: A2Petscii [OPTIONS] FILES");
-    Console.WriteLine("Converts an ASCII text file to a .SEQ PETSCII file");
+    Console.WriteLine("Usage: Pet2Ascii [OPTIONS] FILES");
+    Console.WriteLine("Converts a PETSCII .SEQ file to an ASCII text file");
     Console.WriteLine();
     Console.WriteLine("Options:");
     p.WriteOptionDescriptions(Console.Out);
 }
 
-void ShowBanner() => Console.WriteLine("Casasoft A2Petscii v1.0\n(c) 2025 Roberto Ceccarelli - Casasoft\n");
+void ShowBanner() => Console.WriteLine("Casasoft Pet2Ascii v1.0\n(c) 2025 Roberto Ceccarelli - Casasoft\n");
 #endregion

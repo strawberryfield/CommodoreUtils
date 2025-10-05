@@ -25,13 +25,15 @@ using System.Text;
 #region main
 bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
+bool ShouldUseUppercaseOnly = false;
 string OutputFile = string.Empty;
 
 OptionSet p = new OptionSet()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },
-    { "o|out=", "Output file name (default same as input with .seq extension)", o => OutputFile = o },
+    { "u|uppercase", "Use uppercase only charset", v => ShouldUseUppercaseOnly = v != null },
+    { "o|out=", "Output file name (default same as input with .txt extension)", o => OutputFile = o },
 };
 
 List<string> FilesList = FileHelpers.ExpandWildcards(p.Parse(args));
@@ -57,7 +59,7 @@ foreach (string file in FilesList)
     StringBuilder sb = new();
     foreach (char c in input)
     {
-        sb.Append(Charset.ASCII(c, true));
+        sb.Append(Charset.ASCII(c, !ShouldUseUppercaseOnly));
     }
     File.AppendAllText(filename, sb.ToString());
 }
@@ -73,5 +75,5 @@ void ShowHelp()
     p.WriteOptionDescriptions(Console.Out);
 }
 
-void ShowBanner() => Console.WriteLine("Casasoft Pet2Ascii v1.0\n(c) 2025 Roberto Ceccarelli - Casasoft\n");
+void ShowBanner() => Console.WriteLine("Casasoft Pet2Ascii v1.0\ncopyright (c) 2025 Roberto Ceccarelli - Casasoft\n");
 #endregion

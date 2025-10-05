@@ -35,7 +35,7 @@ OptionSet p = new OptionSet()
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },
     { "u|uppercase", "Use uppercase only charset", v => ShouldUseUppercaseOnly = v != null },
-    { "w|wrap=", "Word-wrap at colum (default=0, set to 0 for no wrap", o => WrapSizeString = o },
+    { "w|wrap=", "Word-wrap at colum (default=0, set to 0 for no wrap)", o => WrapSizeString = o },
     { "o|out=", "Output file name (default same as input with .seq extension)", o => OutputFile = o },
 };
 
@@ -52,7 +52,7 @@ if (ShouldShowHelp || FilesList.Count == 0)
 
 if(!string.IsNullOrWhiteSpace(WrapSizeString))
 {
-    WrapSize = CommandLineHelpers.GetIntParameter(WrapSizeString, 40, "Invalid wrap size '{0}' using default 40");
+    WrapSize = CommandLineHelpers.GetIntParameter(WrapSizeString, 0, "Invalid wrap size '{0}' using default 0 (no wrap)");
     if (WrapSize < 0)
     {
         WrapSize = 0;

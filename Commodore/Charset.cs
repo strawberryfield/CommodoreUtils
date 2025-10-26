@@ -40,6 +40,13 @@ public static class Charset
     public static bool IsUpperCaseLetter(char c) => (c >= 'A' && c <= 'Z');
 
     /// <summary>
+    /// Determines whether the specified character is an uppercase ASCII letter with alternate encoding.
+    /// </summary>
+    /// <param name="c">The character to check.</param>
+    /// <returns>True if the character is an uppercase letter; otherwise, false.</returns>
+    public static bool IsAlternateUpperCaseLetter(char c) => (c >= 0xC1 && c <= 0xDA);
+
+    /// <summary>
     /// Determines whether the specified character is a lowercase ASCII letter.
     /// </summary>
     /// <param name="c">The character to check.</param>
@@ -140,6 +147,13 @@ public static class Charset
         {
             if (LowerCase)
                 ret = (char)(c + 32);
+            else
+                ret = c;
+        }
+        else if (IsAlternateUpperCaseLetter(c))
+        {
+            if (LowerCase)
+                ret = (char)(c - 128);
             else
                 ret = c;
         }

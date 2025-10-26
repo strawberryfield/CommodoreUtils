@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Pet2Ascii": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Commodore\\projects\\sosya\\presentazione.seq\""
+    }
+  }
+}

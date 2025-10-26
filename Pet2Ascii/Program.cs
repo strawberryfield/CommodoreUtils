@@ -54,7 +54,7 @@ foreach (string file in FilesList)
     {
         filename = Path.ChangeExtension(file, ".txt");
     }
-    string input = File.ReadAllText(file);
+    byte[] input = File.ReadAllBytes(file);
 
     StringBuilder sb = new();
     foreach (char c in input)

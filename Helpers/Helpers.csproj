@@ -6,6 +6,12 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Casasoft.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>Casasoft.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Authors>Roberto Ceccarelli</Authors>
+    <Company>Casasoft</Company>
+    <Copyright>copyright (c) 2025 Roberto Ceccarelli - Casasoft</Copyright>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
 </Project>

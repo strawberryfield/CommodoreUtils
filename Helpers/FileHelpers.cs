@@ -19,6 +19,9 @@
 
 namespace Casasoft.Helpers;
 
+/// <summary>
+/// Provides helper methods for file operations, such as expanding wildcard patterns in file paths.
+/// </summary>
 public static class FileHelpers
 {
     /// <summary>

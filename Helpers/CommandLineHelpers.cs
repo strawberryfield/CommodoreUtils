@@ -19,6 +19,9 @@
 
 namespace Casasoft.Helpers;
 
+/// <summary>
+/// Provides helper methods for command line parameter parsing.
+/// </summary>
 public static class CommandLineHelpers
 {
     /// <summary>

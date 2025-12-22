@@ -127,7 +127,7 @@ public static class Charset
     /// <returns>The PETSCII string representation of the input string.</returns>
     public static string PETSCII(string s, bool LowerCase = false)
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         foreach (char c in s)
         {
             sb.Append(PETSCII(c, LowerCase));
@@ -208,8 +208,8 @@ public static class Charset
     /// <returns>The ASCII string representation of the PETSCII byte array.</returns>
     public static string ASCII(byte[] s, bool LowerCase = false)
     {
-        StringBuilder sb = new StringBuilder();
-        foreach (char c in s)
+        StringBuilder sb = new();
+        foreach (char c in s.Select(v => (char)v))
         {
             sb.Append(ASCII(c, LowerCase));
         }

@@ -85,7 +85,7 @@ namespace Casasoft.Commodore
             if (bytesPerLine < 1) bytesPerLine = 8;
             if (bytesPerLine > 12) bytesPerLine = 12;
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             int totalBytes = Data.Length;
             sb.AppendLine(string.Format(DataReader, LoadAddress, LoadAddress + (ushort)(totalBytes - 1), targetFilename));
 

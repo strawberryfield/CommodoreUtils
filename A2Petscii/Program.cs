@@ -29,7 +29,7 @@ string WrapSizeString = "0";
 int WrapSize = Convert.ToInt16(WrapSizeString);
 string OutputFile = string.Empty;
 
-OptionSet p = new OptionSet()
+OptionSet p = new()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },

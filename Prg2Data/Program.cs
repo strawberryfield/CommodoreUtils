@@ -26,7 +26,7 @@ bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
 string OutputFile = string.Empty;
 
-OptionSet p = new OptionSet()
+OptionSet p = new()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },

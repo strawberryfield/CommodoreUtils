@@ -27,7 +27,7 @@ bool ShouldSuppressBanner = false;
 bool ShouldUseUppercaseOnly = false;
 string OutputFile = string.Empty;
 
-OptionSet p = new OptionSet()
+OptionSet p = new()
 {
     { "q|quiet", "Suppress banner print", v => ShouldSuppressBanner = v != null },
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },

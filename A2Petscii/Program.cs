@@ -20,7 +20,6 @@
 using Casasoft.Commodore;
 using Casasoft.Helpers;
 using Mono.Options;
-using System.Text;
 
 #region main
 bool ShouldShowHelp = false;
@@ -66,18 +65,13 @@ foreach (string file in FilesList)
     {
         filename = Path.ChangeExtension(file, ".seq");
     }
-    string input = File.ReadAllText(file);
+    string input = Charset.PETSCII( File.ReadAllText(file), !ShouldUseUppercaseOnly);
     if (WrapSize > 0)
     {
         input = TextHelpers.WordWrap(input, WrapSize);
     }
 
-    StringBuilder sb = new();
-    foreach (char c in input)
-    {
-        sb.Append(Charset.PETSCII(c, !ShouldUseUppercaseOnly));
-    }
-    File.AppendAllText(filename, sb.ToString());
+    File.AppendAllText(filename, input);
 }
 #endregion
 

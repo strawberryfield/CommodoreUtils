@@ -17,6 +17,8 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using System.Text;
+
 namespace Casasoft.Commodore;
 
 /// <summary>
@@ -116,6 +118,22 @@ public static class Charset
 
         return ret;
     }
+
+    /// <summary>
+    /// Converts an ASCII string to its PETSCII representation.
+    /// </summary>
+    /// <param name="s">The ASCII string to convert.</param>
+    /// <param name="LowerCase">If true, converts uppercase letters to lowercase PETSCII.</param>
+    /// <returns>The PETSCII string representation of the input string.</returns>
+    public static string PETSCII(string s, bool LowerCase = false)
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (char c in s)
+        {
+            sb.Append(PETSCII(c, LowerCase));
+        }
+        return sb.ToString();
+    }
     #endregion
 
     #region PETSCII to ASCII conversion
@@ -136,6 +154,12 @@ public static class Charset
         new((char) 0x5c, '£'),
     };
 
+    /// <summary>
+    /// Converts a PETSCII character to its ASCII representation.
+    /// </summary>
+    /// <param name="c">The PETSCII character to convert.</param>
+    /// <param name="LowerCase">If true, converts uppercase letters to lowercase ASCII.</param>
+    /// <returns>The ASCII character representation of the PETSCII character.</returns>
     public static char ASCII(char c, bool LowerCase = false)
     {
         char ret = ' ';
@@ -174,6 +198,22 @@ public static class Charset
             }
         }
         return ret;
+    }
+
+    /// <summary>
+    /// Converts a PETSCII byte array to its ASCII string representation.
+    /// </summary>
+    /// <param name="s">The PETSCII byte array to convert.</param>
+    /// <param name="LowerCase">If true, converts uppercase letters to lowercase ASCII.</param>
+    /// <returns>The ASCII string representation of the PETSCII byte array.</returns>
+    public static string ASCII(byte[] s, bool LowerCase = false)
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (char c in s)
+        {
+            sb.Append(ASCII(c, LowerCase));
+        }
+        return sb.ToString();
     }
     #endregion
 }

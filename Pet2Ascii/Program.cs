@@ -20,7 +20,6 @@
 using Casasoft.Commodore;
 using Casasoft.Helpers;
 using Mono.Options;
-using System.Text;
 
 #region main
 bool ShouldShowHelp = false;
@@ -54,14 +53,9 @@ foreach (string file in FilesList)
     {
         filename = Path.ChangeExtension(file, ".txt");
     }
-    byte[] input = File.ReadAllBytes(file);
+    string input = Charset.ASCII(File.ReadAllBytes(file), !ShouldUseUppercaseOnly);
 
-    StringBuilder sb = new();
-    foreach (char c in input)
-    {
-        sb.Append(Charset.ASCII(c, !ShouldUseUppercaseOnly));
-    }
-    File.AppendAllText(filename, sb.ToString());
+    File.AppendAllText(filename, input);
 }
 #endregion
 

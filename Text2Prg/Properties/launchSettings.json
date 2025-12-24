@@ -2,7 +2,7 @@
   "profiles": {
     "Text2Prg": {
       "commandName": "Project",
-      "commandLineArgs": "--help"
+      "commandLineArgs": "-a $C400 \"C:\\Commodore\\projects\\adventure\\intro.txt\""
     }
   }
 }

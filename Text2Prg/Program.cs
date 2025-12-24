@@ -74,7 +74,7 @@ foreach (string file in FilesList)
     }
     else
     {
-        string text = Charset.PETSCII(File.ReadAllText(file), !ShouldUseUppercaseOnly);
+        string text = Charset.PETSCII(File.ReadAllText(file), !ShouldUseUppercaseOnly)+(char)0;
         prg = new PrgFile(StartAddress, Encoding.ASCII.GetBytes(text));
     }
     prg.Save(filename);

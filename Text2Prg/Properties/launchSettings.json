@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Text2Prg": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    }
+  }
+}

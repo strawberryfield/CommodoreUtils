@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "A2Petscii", "A2Petscii\A2Petscii.csproj", "{CD6DFA65-3F51-4328-9328-C97FB0CFA55E}"
 EndProject
@@ -19,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prg2Data", "Prg2Data\Prg2Data.csproj", "{DD179843-6F0E-4E6B-A2BF-ABF48EE65710}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Text2Prg", "Text2Prg\Text2Prg.csproj", "{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,6 +48,10 @@ Global
 		{DD179843-6F0E-4E6B-A2BF-ABF48EE65710}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD179843-6F0E-4E6B-A2BF-ABF48EE65710}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD179843-6F0E-4E6B-A2BF-ABF48EE65710}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

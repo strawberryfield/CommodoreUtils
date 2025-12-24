@@ -54,7 +54,7 @@ if (ShouldShowHelp || FilesList.Count == 0)
 
 if (!string.IsNullOrWhiteSpace(StartAddressString))
 {
-    StartAddress = (ushort)CommandLineHelpers.GetIntParameter(StartAddressString, StartAddress, 
+    StartAddress = (ushort)CommandLineHelpers.GetIntParameter(StartAddressString, StartAddress,
         "Invalid wrap size '{0}' using default $C000");
 }
 
@@ -74,7 +74,8 @@ foreach (string file in FilesList)
     }
     else
     {
-        string text = Charset.PETSCII(File.ReadAllText(file), !ShouldUseUppercaseOnly)+(char)0;
+        string text = TextHelpers.NormalizeEol(File.ReadAllText(file), TextHelpers.EolType.CR);
+        text = Charset.PETSCII(text, !ShouldUseUppercaseOnly) + (char)0;
         prg = new PrgFile(StartAddress, Encoding.ASCII.GetBytes(text));
     }
     prg.Save(filename);

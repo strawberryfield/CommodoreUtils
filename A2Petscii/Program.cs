@@ -49,7 +49,7 @@ if (ShouldShowHelp || FilesList.Count == 0)
     return;
 }
 
-if(!string.IsNullOrWhiteSpace(WrapSizeString))
+if (!string.IsNullOrWhiteSpace(WrapSizeString))
 {
     WrapSize = CommandLineHelpers.GetIntParameter(WrapSizeString, 0, "Invalid wrap size '{0}' using default 0 (no wrap)");
     if (WrapSize < 0)
@@ -61,11 +61,12 @@ if(!string.IsNullOrWhiteSpace(WrapSizeString))
 foreach (string file in FilesList)
 {
     string filename = OutputFile;
-    if(string.IsNullOrWhiteSpace(OutputFile))
+    if (string.IsNullOrWhiteSpace(OutputFile))
     {
         filename = Path.ChangeExtension(file, ".seq");
     }
-    string input = Charset.PETSCII( File.ReadAllText(file), !ShouldUseUppercaseOnly);
+    string input = TextHelpers.NormalizeEol(File.ReadAllText(file), TextHelpers.EolType.CR);
+    input = Charset.PETSCII(input, !ShouldUseUppercaseOnly);
     if (WrapSize > 0)
     {
         input = TextHelpers.WordWrap(input, WrapSize);

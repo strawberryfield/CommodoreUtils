@@ -69,4 +69,69 @@ public static class TextHelpers
         }
         return wrappedText.ToString();
     }   
+
+    /// <summary>
+    /// Specifies the supported end-of-line (EOL) sequences that can be used when normalizing text.
+    /// </summary>
+    public enum EolType
+    {
+        /// <summary>
+        /// Carriage return + line feed sequence ("\r\n").
+        /// Common on Windows platforms.
+        /// </summary>
+        CRLF,
+
+        /// <summary>
+        /// Line feed sequence ("\n").
+        /// Common on Unix-like platforms (Linux, macOS).
+        /// </summary>
+        LF,
+
+        /// <summary>
+        /// Carriage return sequence ("\r").
+        /// Historically used on older Mac systems or Commodore 8bit computers.
+        /// </summary>
+        CR
+    }
+
+    /// <summary>
+    /// Normalizes all line endings in <paramref name="text"/> to the specified <paramref name="eolType"/>.
+    /// </summary>
+    /// <param name="text">The input text that may contain mixed line endings. If <c>null</c> or empty, the original value is returned.</param>
+    /// <param name="eolType">The target end-of-line sequence to apply.</param>
+    /// <returns>
+    /// A new string where all line endings are converted to the requested EOL sequence.
+    /// If <paramref name="text"/> is <c>null</c> or empty, the same value is returned.
+    /// </returns>
+    /// <remarks>
+    /// The method first normalizes all known line ending combinations (CRLF and CR) to LF,
+    /// then replaces LF with the requested EOL sequence. This two-step approach avoids
+    /// accidental doubling or partial replacements when converting between sequences.
+    /// </remarks>
+    public static string NormalizeEol(string text, EolType eolType)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        string eol;
+        switch (eolType)
+        {
+            case EolType.CRLF:
+                eol = "\r\n";
+                break;
+            case EolType.LF:
+                eol = "\n";
+                break;
+            case EolType.CR:
+                eol = "\r";
+                break;
+            default:
+                eol = Environment.NewLine;
+                break;
+        }
+        // Normalize all line endings to LF first
+        string normalizedText = text.Replace("\r\n", "\n").Replace("\r", "\n");
+        // Then replace LF with the desired EOL
+        normalizedText = normalizedText.Replace("\n", eol);
+        return normalizedText;
+    }
 }

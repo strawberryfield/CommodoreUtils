@@ -51,7 +51,7 @@ foreach (string file in FilesList)
     {
         filename = Path.ChangeExtension(file, ".txt");
     }
-    Prg2Data input = new(file);
+    PrgFile input = new(file);
     File.WriteAllText(filename, input.CreateDataLines(8, Path.GetFileNameWithoutExtension(file)));
 }
 #endregion

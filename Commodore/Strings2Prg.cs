@@ -68,41 +68,93 @@ public class Strings2Prg : PrgFile
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Strings2Prg"/> class from a collection of strings.
-    /// The constructor builds a pointer table followed by the encoded string data suitable for a Commodore PRG:
-    /// the first two bytes contain the number of strings (little-endian ushort), followed by one 16-bit little-endian
-    /// offset per string pointing to each string's data relative to <paramref name="loadAddress"/>. Each string is
-    /// encoded as ASCII bytes and terminated with a single null byte (0x00).
+    /// Constructs a PRG payload containing a pointer table followed by null-terminated ASCII-encoded strings.
+    /// The produced in-memory layout is:
+    /// <list type="bullet">
+    /// <item><description>[0..1] : number of strings (ushort, little-endian)</description></item>
+    /// <item><description>[2..]  : sequence of 16-bit little-endian offsets (one per string) — absolute offsets relative to <paramref name="loadAddress"/></description></item>
+    /// <item><description>[... ] : concatenated ASCII-encoded strings, each terminated with <c>0x00</c></description></item>
+    /// </list>
     /// </summary>
     /// <param name="loadAddress">
-    /// The 16-bit load address at which the PRG data will be placed in memory. Pointers written into the resulting
-    /// data buffer are relative to this address.
+    /// The 16-bit memory load address at which the resulting PRG data is intended to be loaded.
+    /// Pointers written into the pointer table are absolute addresses computed as (<paramref name="loadAddress"/> + index).
     /// </param>
     /// <param name="strings">
-    /// The list of strings to encode into the PRG data section. Each entry is converted to PETSCII via
-    /// <see cref="Charset.PETSCII(string, bool)"/> before ASCII encoding and null-termination.
+    /// The list of .NET strings to encode. Each element is first converted to PETSCII using <see cref="Charset.PETSCII(string, bool)"/>,
+    /// then ASCII-encoded and terminated with a single null byte (<c>0x00</c>).
     /// </param>
     /// <param name="LowerCase">
-    /// If <see langword="true"/>, the <see cref="Charset.PETSCII(string, bool)"/> conversion will prefer lower-case PETSCII.
+    /// If <see langword="true"/>, the PETSCII conversion will prefer lower-case characters; otherwise upper-case PETSCII is used.
     /// Defaults to <see langword="false"/>.
     /// </param>
+    /// <param name="AddIndex">
+    /// If <see langword="true"/>, the pointer table is copied into the beginning of the instance <see cref="PrgFile.Data"/> buffer
+    /// and the string bytes follow immediately after it. If <see langword="false"/>, only the concatenated string bytes are copied
+    /// into <see cref="PrgFile.Data"/> starting at index <c>0</c>; the pointer-table region in the allocated buffer will remain zeroed.
+    /// Note: the constructor always allocates the Data buffer with space for the pointer table (pointer table length + total string bytes)
+    /// regardless of the value of <paramref name="AddIndex"/>.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">
-    /// Thrown if <paramref name="strings"/> is <see langword="null"/>. Note: the constructor does not perform explicit
-    /// null checks; attempting to call it with a null reference will result in an exception.
+    /// Thrown if <paramref name="strings"/> is <see langword="null"/>. The implementation does not perform an explicit guard here,
+    /// so calling with a null reference will result in an exception from the runtime.
     /// </exception>
     /// <exception cref="System.OverflowException">
-    /// May be thrown if the computed offsets exceed the range of a 16-bit unsigned integer when combined with
+    /// May be thrown if computed absolute offsets (pointer values) exceed <see cref="ushort.MaxValue"/> when combined with
     /// <paramref name="loadAddress"/> (i.e., resulting address &gt; <see cref="ushort.MaxValue"/>).
     /// </exception>
     /// <remarks>
-    /// - The pointer table layout:
-    ///   [0..1]   : number of strings (ushort, little-endian)
-    ///   [2..]    : sequence of ushort offsets (little-endian), one per string
-    ///   [pointers.Length..] : concatenated ASCII-encoded strings each terminated by 0x00
+    /// - The pointer values stored in the pointer table are 16-bit little-endian addresses that point to the start of each string
+    ///   when the PRG is loaded at <paramref name="loadAddress"/>.
+    /// - No further validation is performed on string contents; callers should ensure strings are suitable for ASCII encoding
+    ///   after PETSCII conversion.
     /// - The constructor sets the instance <see cref="PrgFile.LoadAddress"/> and <see cref="PrgFile.Data"/> properties.
-    /// - No further validation is performed on string contents; callers should ensure strings are suitable for ASCII encoding.
     /// </remarks>
-    public Strings2Prg(ushort loadAddress, List<string> strings, bool LowerCase = false)
+    public Strings2Prg(ushort loadAddress, List<string> strings, bool LowerCase = false, bool AddIndex = true)
+    {
+        (byte[] pointers, byte[] data) = CreateArrays(strings, loadAddress, LowerCase);
+ 
+        this.LoadAddress = loadAddress;
+        this.Data = new byte[(AddIndex ? pointers.Length : 0) + data.Length];
+        if (AddIndex)
+        {
+            pointers.CopyTo(this.Data, 0);
+            data.CopyTo(this.Data, pointers.Length);
+        }
+        else
+        {
+            data.CopyTo(this.Data, 0);
+        }
+    }
+    #endregion
+
+    /// <summary>
+    /// Creates the raw pointer table bytes and the concatenated, null-terminated string bytes for a PRG.
+    /// </summary>
+    /// <param name="strings">A list of managed strings to be converted to PETSCII, ASCII-encoded and terminated with <c>0x00</c>.</param>
+    /// <param name="loadAddress">
+    /// The 16-bit load address at which the resulting PRG data is intended to be loaded.
+    /// Pointer entries are written as absolute 16-bit addresses computed relative to this value.
+    /// </param>
+    /// <param name="LowerCase">If <see langword="true"/>, PETSCII conversion prefers lower-case; otherwise upper-case is used.</param>
+    /// <returns>
+    /// A tuple where:
+    /// <list type="bullet">
+    /// <item><description><c>Pointers</c> — a byte array containing a 16-bit count followed by 16-bit little-endian absolute addresses (one per string).</description></item>
+    /// <item><description><c>StringsList</c> — a byte array containing the concatenated ASCII-encoded strings, each terminated with <c>0x00</c>, and an extra final null terminator.</description></item>
+    /// </list>
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">If <paramref name="strings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.OverflowException">
+    /// If computed absolute pointer values exceed <see cref="ushort.MaxValue"/> when combined with <paramref name="loadAddress"/>.
+    /// </exception>
+    /// <remarks>
+    /// - The returned <c>Pointers</c> buffer layout:
+    ///   [0..1] = number of strings (ushort, little-endian), followed by N 16-bit little-endian absolute addresses.
+    /// - The returned <c>StringsList</c> buffer contains the ASCII bytes of each PETSCII-converted string followed by <c>0x00</c>.
+    /// - The implementation appends an extra null byte after the last string; callers should account for it when computing sizes.
+    /// </remarks>
+    public static (byte[] Pointers, byte[] StringsList) CreateArrays(List<string> strings, ushort loadAddress, bool LowerCase = false)
     {
         byte[] pointers = new byte[strings.Count * 2 + 2];
         Conversions.InsertUShort(pointers, 0, (ushort)strings.Count);
@@ -116,12 +168,11 @@ public class Strings2Prg : PrgFile
             byte[] strBytes = Encoding.ASCII.GetBytes(str);
             data.AddRange(strBytes);
             data.Add(0); // null terminator
+
             currentOffset += (ushort)(strBytes.Length + 1);
         }
-        this.LoadAddress = loadAddress;
-        this.Data = new byte[pointers.Length + data.Count];
-        pointers.CopyTo(this.Data, 0);
-        data.ToArray().CopyTo(this.Data, pointers.Length);
+        data.Add(0); // final null terminator
+
+        return (pointers, data.ToArray());
     }
-    #endregion
 }

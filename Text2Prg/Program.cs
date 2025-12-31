@@ -27,6 +27,7 @@ bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
 bool ShouldUseUppercaseOnly = false;
 bool ListMode = false;
+bool stringsOnly = false;
 string StartAddressString = "$C000";
 ushort StartAddress = Convert.ToUInt16(StartAddressString.Substring(1), 16);
 string OutputFile = string.Empty;
@@ -38,6 +39,7 @@ OptionSet p = new()
     { "u|uppercase", "Use uppercase only charset", v => ShouldUseUppercaseOnly = v != null },
     { "l|listmode", "Convert to a list of strings", v => ListMode = v != null },
     { "a|address=", "Start address (default 0xC000)", a => StartAddressString = a },
+    { "s|stringsonly", "Do not include index", v => stringsOnly = v != null  },
     { "o|out=", "Output file name (default same as input with .PRG extension)", o => OutputFile = o },
 };
 
@@ -55,7 +57,7 @@ if (ShouldShowHelp || FilesList.Count == 0)
 if (!string.IsNullOrWhiteSpace(StartAddressString))
 {
     StartAddress = (ushort)CommandLineHelpers.GetIntParameter(StartAddressString, StartAddress,
-        "Invalid wrap size '{0}' using default $C000");
+        "Invalid start address '{0}' using default $C000");
 }
 
 IPrgFile prg;
@@ -70,7 +72,7 @@ foreach (string file in FilesList)
     if (ListMode)
     {
         List<string> lines = File.ReadAllLines(file).ToList();
-        prg = new Strings2Prg(StartAddress, lines, !ShouldUseUppercaseOnly);
+        prg = new Strings2Prg(StartAddress, lines, !ShouldUseUppercaseOnly, !stringsOnly);
     }
     else
     {

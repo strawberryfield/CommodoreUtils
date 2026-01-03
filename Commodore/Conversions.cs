@@ -63,4 +63,23 @@ public static class Conversions
     /// and <paramref name="array"/>[<paramref name="index"/> + 1], respectively.
     /// </remarks>
     public static void InsertUShort(byte[] array, int index, ushort value) => (array[index], array[index + 1]) = ToBytes(value);
+
+    /// <summary>
+    /// Reads a 16-bit unsigned integer from a byte array at the specified index using little-endian ordering.
+    /// </summary>
+    /// <param name="array">The source byte array containing the bytes to read.</param>
+    /// <param name="index">The starting index where the low byte is located; the high byte is read from <c>index + 1</c>.</param>
+    /// <returns>
+    /// The 16-bit unsigned integer composed from <c>array[index]</c> (low byte) and <c>array[index + 1]</c> (high byte).
+    /// </returns>
+    /// <remarks>
+    /// This method interprets bytes in little-endian order. It does not perform bounds checking; callers must ensure that
+    /// <paramref name="array"/> contains at least two bytes starting at <paramref name="index"/>.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var value = Conversions.ReadUShort(new byte[] { 0x34, 0x12 }, 0); // returns 0x1234
+    /// </code>
+    /// </example>
+    public static ushort ReadUShort(byte[] array, int index) => ToUShort(array[index], array[index + 1]);
 }

@@ -175,4 +175,49 @@ public class Strings2Prg : PrgFile
 
         return (pointers, data.ToArray());
     }
+
+    /// <summary>
+    /// Adjusts the pointer table of an in-memory PRG payload so pointer entries reference a different load address.
+    /// </summary>
+    /// <param name="prgData">
+    /// The PRG payload buffer that contains the pointer table. Expected layout:
+    /// [0..1] = number of strings (ushort, little-endian),
+    /// [2..]  = sequence of 16-bit little-endian absolute addresses (one per string).
+    /// The buffer is modified in-place; pointers are rewritten as little-endian 16-bit values.
+    /// </param>
+    /// <param name="newLoadAddress">Target 16-bit load address to which pointer values will be adjusted.</param>
+    /// <param name="oldLoadAddress">Original 16-bit load address that current pointer values reference. Defaults to 0.</param>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="prgData"/> is too short to contain a valid pointer table or does not contain the expected number of pointers.
+    /// </exception>
+    /// <remarks>
+    /// The method reads the string count from the first two bytes then iterates each pointer entry
+    /// at offsets 2 + (index * 2). Each pointer value is transformed using the formula:
+    /// adjusted = oldPointer - oldLoadAddress + newLoadAddress
+    /// and the adjusted 16-bit little-endian value is written back to the same location.
+    ///
+    /// The function does not validate that adjusted pointers point within the provided buffer and performs
+    /// no bounds checks on pointer targets. It operates only on the pointer table itself and leaves string
+    /// contents untouched.
+    /// </remarks>
+    public static void RelocatePointers(byte[] prgData, ushort newLoadAddress, ushort oldLoadAddress = 0)
+    {
+        if (prgData.Length < 4)
+        {
+            throw new ArgumentException("PRG data is too short to contain a valid pointer table.");
+        }
+        ushort stringCount = Conversions.ReadUShort(prgData, 0);
+        int expectedLength = 2 + stringCount * 2;
+        if (prgData.Length < expectedLength)
+        {
+            throw new ArgumentException("PRG data is too short to contain the expected number of pointers.");
+        }
+        for (int i = 0; i < stringCount; i++)
+        {
+            int pointerOffset = 2 + i * 2;
+            ushort oldPointer = Conversions.ReadUShort(prgData, pointerOffset);
+            ushort adjustedPointer = (ushort)(oldPointer - oldLoadAddress + newLoadAddress);
+            Conversions.InsertUShort(prgData, pointerOffset, adjustedPointer);
+        }
+    }
 }

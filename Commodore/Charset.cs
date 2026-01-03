@@ -1,7 +1,7 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="Charset.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
-//     Copyright (c) 2025 All rights reserved.
+//     Copyright (c) 2025,2026 All rights reserved.
 // </copyright>
 //
 // This file is part of Casasoft Commodore Utils
@@ -84,7 +84,10 @@ public static class Charset
     /// Converts an ASCII character to its PETSCII representation.
     /// </summary>
     /// <param name="c">The ASCII character to convert.</param>
-    /// <param name="LowerCase">If true, converts uppercase letters to lowercase PETSCII.</param>
+    /// <param name="LowerCase">
+    /// If true, converts uppercase letters to lowercase PETSCII. When false,
+    /// preserves the case mapping according to PETSCII rules.
+    /// </param>
     /// <returns>The PETSCII string representation of the character.</returns>
     public static string PETSCII(char c, bool LowerCase = false)
     {
@@ -122,8 +125,11 @@ public static class Charset
     /// <summary>
     /// Converts an ASCII string to its PETSCII representation.
     /// </summary>
-    /// <param name="s">The ASCII string to convert.</param>
-    /// <param name="LowerCase">If true, converts uppercase letters to lowercase PETSCII.</param>
+    /// <param name="s">The ASCII string to convert. If null, an ArgumentNullException will be thrown by the caller.</param>
+    /// <param name="LowerCase">
+    /// If true, converts uppercase letters to lowercase PETSCII. When false,
+    /// preserves the case mapping according to PETSCII rules.
+    /// </param>
     /// <returns>The PETSCII string representation of the input string.</returns>
     public static string PETSCII(string s, bool LowerCase = false)
     {
@@ -158,7 +164,10 @@ public static class Charset
     /// Converts a PETSCII character to its ASCII representation.
     /// </summary>
     /// <param name="c">The PETSCII character to convert.</param>
-    /// <param name="LowerCase">If true, converts uppercase letters to lowercase ASCII.</param>
+    /// <param name="LowerCase">
+    /// If true, converts uppercase letters to lowercase ASCII. When false,
+    /// preserves the original case mapping according to PETSCII rules.
+    /// </param>
     /// <returns>The ASCII character representation of the PETSCII character.</returns>
     public static char ASCII(char c, bool LowerCase = false)
     {
@@ -203,13 +212,37 @@ public static class Charset
     /// <summary>
     /// Converts a PETSCII byte array to its ASCII string representation.
     /// </summary>
-    /// <param name="s">The PETSCII byte array to convert.</param>
-    /// <param name="LowerCase">If true, converts uppercase letters to lowercase ASCII.</param>
+    /// <param name="s">The PETSCII byte array to convert. Each element is interpreted as a PETSCII code.</param>
+    /// <param name="LowerCase">
+    /// If true, converts uppercase letters to lowercase ASCII. When false,
+    /// preserves the original case mapping according to PETSCII rules.
+    /// </param>
     /// <returns>The ASCII string representation of the PETSCII byte array.</returns>
     public static string ASCII(byte[] s, bool LowerCase = false)
     {
         StringBuilder sb = new();
         foreach (char c in s.Select(v => (char)v))
+        {
+            sb.Append(ASCII(c, LowerCase));
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Converts a PETSCII string to its ASCII string representation.
+    /// </summary>
+    /// <param name="s">The PETSCII string to convert. Each character is interpreted as a PETSCII code.</param>
+    /// <param name="LowerCase">
+    /// If true, converts uppercase letters to lowercase ASCII. When false,
+    /// preserves the original case mapping according to PETSCII rules.
+    /// </param>
+    /// <returns>
+    /// The ASCII string representation of the input PETSCII string.
+    /// </returns>
+    public static string ASCII(string s, bool LowerCase = false)
+    {
+        StringBuilder sb = new();
+        foreach (char c in s)
         {
             sb.Append(ASCII(c, LowerCase));
         }

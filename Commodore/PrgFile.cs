@@ -17,6 +17,7 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using System.Linq;
 using System.Text;
 
 namespace Casasoft.Commodore;
@@ -107,6 +108,28 @@ public class PrgFile : IPrgFile
     {
         LoadAddress = 0;
         Data = Array.Empty<byte>();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PrgFile"/> class with the specified load address and a list of byte array parts.
+    /// </summary>
+    /// <param name="loadAddress">The 16-bit load address that precedes the data in the PRG format.</param>
+    /// <param name="parts">A list of byte arrays representing segments of the data to be concatenated. The arrays are copied into a single contiguous data array.</param>
+    /// <remarks>
+    /// This constructor combines all provided byte array segments into a single data array, which is stored directly.
+    /// Callers must not modify the original arrays if they expect the <see cref="PrgFile"/> instance to remain immutable.
+    /// </remarks>
+    public PrgFile(ushort loadAddress, List<byte[]> parts)
+    {
+        LoadAddress = loadAddress;
+        int offset = 0;
+        int totalLength = parts.Aggregate(0, (accumulator, part) => accumulator += part.Length);
+        Data = new byte[totalLength];
+        foreach (var part in parts)
+        {
+            Array.Copy(part, 0, Data, offset, part.Length);
+            offset += part.Length;
+        }
     }
     #endregion
 

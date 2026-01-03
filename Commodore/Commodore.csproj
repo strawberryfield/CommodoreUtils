@@ -13,6 +13,19 @@
     <Copyright>copyright (c) 2025 Roberto Ceccarelli - Casasoft</Copyright>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Version>1.0.1-alpha2</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/strawberryfield/CommodoreUtils</PackageProjectUrl>
+    <Title>Casasoft Commodore Utils</Title>
+    <RepositoryUrl>https://github.com/strawberryfield/CommodoreUtils</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

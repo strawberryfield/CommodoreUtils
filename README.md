@@ -1,6 +1,6 @@
 # Casasoft Commodore Utils
 
-copyright (c) 2025 Roberto Ceccarelli  
+copyright (c) 2025,2026 Roberto Ceccarelli  
 https://strawberryfield.altervista.org  
 rilasciato con licenza GNU AGPL 3.0
 

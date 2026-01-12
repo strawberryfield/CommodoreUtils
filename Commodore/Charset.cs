@@ -227,26 +227,5 @@ public static class Charset
         }
         return sb.ToString();
     }
-
-    /// <summary>
-    /// Converts a PETSCII string to its ASCII string representation.
-    /// </summary>
-    /// <param name="s">The PETSCII string to convert. Each character is interpreted as a PETSCII code.</param>
-    /// <param name="LowerCase">
-    /// If true, converts uppercase letters to lowercase ASCII. When false,
-    /// preserves the original case mapping according to PETSCII rules.
-    /// </param>
-    /// <returns>
-    /// The ASCII string representation of the input PETSCII string.
-    /// </returns>
-    public static string ASCII(string s, bool LowerCase = false)
-    {
-        StringBuilder sb = new();
-        foreach (char c in s)
-        {
-            sb.Append(ASCII(c, LowerCase));
-        }
-        return sb.ToString();
-    }
     #endregion
 }

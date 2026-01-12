@@ -32,7 +32,7 @@ public static class Charset
     /// </summary>
     /// <param name="c">The character to check.</param>
     /// <returns>True if the character is a symbol or number; otherwise, false.</returns>
-    public static bool IsSymbolOrNumber(char c) => (c >= ' ' && c <= '@') || c == 10 || c == 13;
+    public static bool IsSymbolOrNumber(char c) => (c >= ' ' && c <= '@') || c == 10 || c == 13 || c == 12;
 
     /// <summary>
     /// Determines whether the specified character is an uppercase ASCII letter.

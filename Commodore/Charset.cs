@@ -142,6 +142,20 @@ public static class Charset
         }
         return sb.ToString();
     }
+
+    public static byte[] PETSCIIBytes(string s, bool LowerCase = false)
+    {
+        List<byte> bytes = new();
+        foreach (char c in s)
+        {
+            string petsciiStr = PETSCII(c, LowerCase);
+            foreach (char pc in petsciiStr)
+            {
+                bytes.Add((byte)pc);
+            }
+        }
+        return bytes.ToArray();
+    }
     #endregion
 
     #region PETSCII to ASCII conversion

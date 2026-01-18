@@ -163,9 +163,8 @@ public class Strings2Prg : PrgFile
         List<byte> data = new List<byte>();
         for (ushort j = 0; j < strings.Count; j++)
         {
-            string str = Charset.PETSCII(strings[j], LowerCase);
             Conversions.InsertUShort(pointers, j * 2 + 2, currentOffset);
-            byte[] strBytes = Encoding.ASCII.GetBytes(str);
+            byte[] strBytes = Charset.PETSCIIBytes(strings[j], LowerCase);
             data.AddRange(strBytes);
             data.Add(0); // null terminator
 

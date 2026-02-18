@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Img2Prg": {
+      "commandName": "Project",
+      "commandLineArgs": "--address=0xA000 C:\\Commodore\\projects\\adventure\\player2026\\cover.txt"
+    }
+  }
+}

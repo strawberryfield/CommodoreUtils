@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prg2Data", "Prg2Data\Prg2Da
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Text2Prg", "Text2Prg\Text2Prg.csproj", "{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Img2Prg", "Img2Prg\Img2Prg.csproj", "{19A0408E-911B-4B80-BB4E-13410F3C9B9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F34C0D72-AC67-435F-BC13-CD2A366F5B4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19A0408E-911B-4B80-BB4E-13410F3C9B9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19A0408E-911B-4B80-BB4E-13410F3C9B9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19A0408E-911B-4B80-BB4E-13410F3C9B9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19A0408E-911B-4B80-BB4E-13410F3C9B9F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

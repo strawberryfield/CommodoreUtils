@@ -9,9 +9,28 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Authors>Roberto Ceccarelli</Authors>
     <Company>Casasoft</Company>
-    <Copyright>copyright (c) 2025 Roberto Ceccarelli - Casasoft</Copyright>
+    <Copyright>copyright (c) 2025-2026 Roberto Ceccarelli - Casasoft</Copyright>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Title>Casasoft Helpers</Title>
+    <Product>Casasoft Helpers</Product>
+    <Description>Lightweight helper utilities targeted at .NET 10.0. 
+Provides common helper functions and extension methods for reuse across Casasoft projects.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/strawberryfield/CommodoreUtils/tree/master/Helpers</RepositoryUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageIcon>icon.jpg</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="icon.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

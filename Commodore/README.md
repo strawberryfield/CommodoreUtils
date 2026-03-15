@@ -1,4 +1,4 @@
-# Commodore Package
+# Casasoft Commodore Package
 
 A small utility library for reading, writing and generating Commodore PRG files in .NET.
 
@@ -11,20 +11,19 @@ This package provides in-memory representations and helpers for PRG files (two-b
 - Produce Commodore BASIC `DATA` lines for embedding PRG data in source listings.
 - Utilities for relocating pointer tables when changing load addresses.
 
-## Getting started
+Quick Start
+-----------
 
-Prerequisites:
+Install (from NuGet)
+- If the package is published as `Casasoft.Commodore.Utils`:
+  - `dotnet add package Casasoft.Commodore.Utils`
 
-- .NET 10 SDK
-- Visual Studio or any IDE that supports .NET 10
-
-Build and test from the command line:
-
-__dotnet build__
-
-__dotnet test__
-
-In Visual Studio open the solution and use the __Build__ command and run unit tests from the __Test Explorer__ window.
+Build from source
+- Restore and build:
+  - `dotnet restore`
+  - `dotnet build -c Release`
+- Pack:
+  - `dotnet pack -c Release -o ./nupkg`
 
 ## Usage examples
 
@@ -75,13 +74,16 @@ See XML doc comments in the source for detailed API behavior and edge-case notes
 
 ## Contributing
 
-See `CONTRIBUTING.md` for repository-level contribution guidelines. Follow the project's coding standards (see `.editorconfig`) and run the test suite before submitting pull requests.
+- Fork the repo, create a feature branch, and submit a pull request.
+- Keep changes targeted and include unit tests where appropriate.
+- Follow the existing code style and include XML comments for public APIs.
 
 ## License
 
 Casasoft Commodore Utils is licensed under the GNU Affero General Public License v3 (AGPL-3.0). See the repository license file for details.
 
-## Contact
-
-Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
+Authors and Maintainers
+-----------------------
+- Roberto Ceccarelli (http://strawberryfield.altervista.org)
+- Company: Casasoft
 

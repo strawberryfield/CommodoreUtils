@@ -10,18 +10,26 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Authors>Roberto Ceccarelli</Authors>
     <Company>Casasoft</Company>
-    <Copyright>copyright (c) 2025 Roberto Ceccarelli - Casasoft</Copyright>
+    <Copyright>copyright (c) 2025-2026 Roberto Ceccarelli - Casasoft</Copyright>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Version>1.0.1-alpha9</Version>
+    <Version>1.0.2</Version>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/strawberryfield/CommodoreUtils</PackageProjectUrl>
     <Title>Casasoft Commodore Utils</Title>
     <RepositoryUrl>https://github.com/strawberryfield/CommodoreUtils</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Product>Casasoft Commodore Utils</Product>
+    <Description>A small utility library for reading, writing and generating Commodore PRG files in .NET.
+</Description>
+    <PackageIcon>icon.jpg</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Update="icon.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

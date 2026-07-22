@@ -26,6 +26,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.151.0-preview.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="icon.jpg">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

@@ -1,7 +1,7 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="C64Palette.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
-//     Copyright (c) 2025 All rights reserved.
+//     Copyright (c) 2026 All rights reserved.
 // </copyright>
 //
 // This file is part of Casasoft Commodore Utils

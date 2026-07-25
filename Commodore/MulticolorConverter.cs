@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------
 // <copyright file="MulticolorConverter.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
-//     Copyright (c) 2025 All rights reserved.
+//     Copyright (c) 2026 All rights reserved.
 // </copyright>
 //
 // This file is part of Casasoft Commodore Utils
@@ -20,6 +20,38 @@
 using SkiaSharp;
 
 namespace Casasoft.Commodore;
+
+/// <summary>
+/// Controls at which stage(s) of the conversion pipeline the brightness bias
+/// (see <see cref="MulticolorConverter.ConvertImage"/>) is applied.
+/// </summary>
+/// <remarks>
+/// The brightness bias can influence two distinct decisions:
+/// <list type="bullet">
+/// <item><description><b>Quantization</b>: which C64 palette color each source pixel is mapped to
+/// (during dithering or plain nearest-color quantization). Biasing this stage nudges individual
+/// pixels towards brighter palette colors whenever two candidate colors are near-equidistant in
+/// RGB space, regardless of how "noisy"/dithered the image is.</description></item>
+/// <item><description><b>Selection</b>: which colors are chosen as the screen-wide background and
+/// the per-cell foreground colors, based on already-quantized pixel color frequency counts.
+/// Biasing this stage only changes the outcome when candidate colors have comparable counts;
+/// it has no effect when one color is overwhelmingly dominant (e.g. large flat/undithered areas).</description></item>
+/// </list>
+/// </remarks>
+public enum BrightnessBiasMode
+{
+    /// <summary>No brightness bias is applied anywhere; behaves as if brightnessBias were 0.</summary>
+    None,
+
+    /// <summary>Brightness bias is applied only when quantizing pixels to the C64 palette.</summary>
+    Quantization,
+
+    /// <summary>Brightness bias is applied only when selecting background/foreground colors from frequency counts.</summary>
+    Selection,
+
+    /// <summary>Brightness bias is applied both at quantization time and at background/foreground selection time (default).</summary>
+    Both
+}
 
 /// <summary>
 /// Converts RGB images to Commodore 64 multicolor bitmap format using SkiaSharp.
@@ -63,6 +95,14 @@ public class MulticolorConverter
     private const int CHAR_ROWS = 25;
 
     /// <summary>
+    /// Perceptual luminance (0..255) of each C64 palette color, used to bias color selection
+    /// towards brighter colors when picking the background and per-cell foreground colors.
+    /// </summary>
+    private static readonly double[] PaletteLuminance = C64Palette.ColorsRgb
+        .Select(c => 0.299 * c.r + 0.587 * c.g + 0.114 * c.b)
+        .ToArray();
+
+    /// <summary>
     /// Represents accumulated color error values for Floyd-Steinberg dithering.
     /// Stores separate error values for red, green, and blue channels.
     /// </summary>
@@ -82,19 +122,52 @@ public class MulticolorConverter
     /// Converts an RGB image to C64 multicolor format.
     /// </summary>
     /// <param name="input">The input image as an SKBitmap to be converted.</param>
+    /// <param name="useDithering">
+    /// If <see langword="true"/> (default), Floyd-Steinberg error-diffusion dithering is applied while
+    /// quantizing colors to the C64 palette. If <see langword="false"/>, each pixel is simply mapped to
+    /// its closest C64 palette color with no error diffusion, which produces flatter, more "banded"
+    /// results but avoids the dithering pattern/noise.
+    /// </param>
+    /// <param name="brightnessBias">
+    /// Controls how strongly brighter palette colors are favored over darker ones. <c>0.0</c> disables the
+    /// bias entirely (pure "closest color" / "most frequent color wins" behavior, the original default).
+    /// Positive values (e.g. <c>0.35</c>, the default) penalize dark colors and reward bright ones so that
+    /// black/dark tones are only chosen when they are strongly dominant, reducing large flat black areas in
+    /// the output. Reasonable range is roughly 0.0 (no bias) to 1.0 (strong bias). Where in the pipeline this
+    /// bias is applied is controlled by <paramref name="brightnessMode"/>.
+    /// </param>
+    /// <param name="brightnessMode">
+    /// Selects which stage(s) of the conversion the <paramref name="brightnessBias"/> affects; see
+    /// <see cref="BrightnessBiasMode"/>. Defaults to <see cref="BrightnessBiasMode.Both"/>, which applies the
+    /// bias both when quantizing individual pixels to the C64 palette and when selecting the per-cell
+    /// background/foreground colors from frequency counts. Using <see cref="BrightnessBiasMode.Selection"/>
+    /// only (the original behavior) has little to no visible effect on flat, undithered images, because a
+    /// dominant color's frequency count usually cannot be outweighed by the bias alone; enabling
+    /// <see cref="BrightnessBiasMode.Quantization"/> makes the bias affect pixel-level color choice directly,
+    /// which is visible even without dithering.
+    /// </param>
     /// <returns>A <see cref="C64MulticolorData"/> object containing the bitmap data, color RAM, screen RAM and background color.</returns>
-    public C64MulticolorData ConvertImage(SKBitmap input)
+    public C64MulticolorData ConvertImage(SKBitmap input, bool useDithering = true, double brightnessBias = 0.35,
+        BrightnessBiasMode brightnessMode = BrightnessBiasMode.Both)
     {
         var result = new C64MulticolorData();
 
         // Step 1: Downscale from original size to 160x200
         using var downscaled = DownscaleImage(input);
 
-        // Step 2: Apply Floyd-Steinberg dithering to C64 palette
-        using var dithered = ApplyDithering(downscaled);
+        // Determine, for each stage, the effective bias to apply (0.0 = no effect, matches original behavior).
+        bool applyAtQuantization = brightnessMode is BrightnessBiasMode.Quantization or BrightnessBiasMode.Both;
+        bool applyAtSelection = brightnessMode is BrightnessBiasMode.Selection or BrightnessBiasMode.Both;
+        double quantizationBias = applyAtQuantization ? brightnessBias : 0.0;
+        double selectionBias = applyAtSelection ? brightnessBias : 0.0;
+
+        // Step 2: Quantize colors to the C64 palette, with or without Floyd-Steinberg dithering
+        using var quantized = useDithering
+            ? ApplyDithering(downscaled, quantizationBias)
+            : ApplyQuantization(downscaled, quantizationBias);
 
         // Step 3: Generate multicolor bitmap data, color RAM, screen RAM and background color
-        GenerateMulticolorData(dithered, result);
+        GenerateMulticolorData(quantized, result, selectionBias);
 
         return result;
     }
@@ -124,8 +197,13 @@ public class MulticolorConverter
     /// Applies Floyd-Steinberg dithering to convert the image to the C64 color palette.
     /// </summary>
     /// <param name="input">The 160x200 image to dither.</param>
+    /// <param name="brightnessBias">
+    /// Brightness bias applied while picking the closest C64 palette color for each pixel (see
+    /// <see cref="FindClosestColorBiased"/>). <c>0.0</c> reproduces the original unbiased nearest-color
+    /// behavior.
+    /// </param>
     /// <returns>A dithered SKBitmap with colors quantized to the C64 palette.</returns>
-    private SKBitmap ApplyDithering(SKBitmap input)
+    private SKBitmap ApplyDithering(SKBitmap input, double brightnessBias = 0.0)
     {
         // Enforce a standard 32-bit RGBA or BGRA target format to easily manipulate pixels safely
         var info = new SKImageInfo(SCREEN_WIDTH, SCREEN_HEIGHT, SKColorType.Rgba8888, SKAlphaType.Opaque);
@@ -149,8 +227,8 @@ public class MulticolorConverter
                 g = Math.Max(0, Math.Min(255, g));
                 b = Math.Max(0, Math.Min(255, b));
 
-                // Find closest C64 color
-                int closestColor = C64Palette.FindClosestColor((byte)r, (byte)g, (byte)b);
+                // Find closest C64 color, optionally biased towards brighter palette colors
+                int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
                 output.SetPixel(x, y, new SKColor((byte)c64Color.r, (byte)c64Color.g, (byte)c64Color.b));
@@ -192,11 +270,48 @@ public class MulticolorConverter
     }
 
     /// <summary>
+    /// Converts the image to the C64 color palette by mapping each pixel to its closest palette color,
+    /// with no error diffusion (i.e. no dithering).
+    /// </summary>
+    /// <param name="input">The 160x200 image to quantize.</param>
+    /// <param name="brightnessBias">
+    /// Brightness bias applied while picking the closest C64 palette color for each pixel (see
+    /// <see cref="FindClosestColorBiased"/>). <c>0.0</c> reproduces the original unbiased nearest-color
+    /// behavior. Since undithered quantization produces large flat-color regions with no near-tie frequency
+    /// counts, this is the only way to make the brightness bias visibly affect undithered output — biasing
+    /// only the background/foreground selection stage has little to no effect here.
+    /// </param>
+    /// <returns>A quantized SKBitmap with colors mapped to the C64 palette, without dithering.</returns>
+    private SKBitmap ApplyQuantization(SKBitmap input, double brightnessBias = 0.0)
+    {
+        // Enforce a standard 32-bit RGBA target format to easily manipulate pixels safely
+        var info = new SKImageInfo(SCREEN_WIDTH, SCREEN_HEIGHT, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        var output = new SKBitmap(info);
+
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                var pixel = input.GetPixel(x, y);
+
+                // Find closest C64 color, optionally biased towards brighter palette colors; no error diffusion applied
+                int closestColor = FindClosestColorBiased(pixel.Red, pixel.Green, pixel.Blue, brightnessBias);
+                var c64Color = C64Palette.ColorsRgb[closestColor];
+
+                output.SetPixel(x, y, new SKColor((byte)c64Color.r, (byte)c64Color.g, (byte)c64Color.b));
+            }
+        }
+
+        return output;
+    }
+
+    /// <summary>
     /// Generates the multicolor bitmap data, color RAM, screen RAM and background color for the C64.
     /// </summary>
     /// <param name="input">The dithered 160x200 image with C64 palette colors.</param>
     /// <param name="output">The output structure to populate with bitmap, RAM data and background color.</param>
-    private void GenerateMulticolorData(SKBitmap input, C64MulticolorData output)
+    /// <param name="brightnessBias">See <see cref="ConvertImage"/> for details.</param>
+    private void GenerateMulticolorData(SKBitmap input, C64MulticolorData output, double brightnessBias)
     {
         // Get color indices for all pixels (160x200 working resolution, 1:1 with multicolor logical pixels)
         int[,] colorIndices = new int[SCREEN_WIDTH, SCREEN_HEIGHT];
@@ -211,7 +326,7 @@ public class MulticolorConverter
 
         // The background color (bit-pattern 00) is a single, screen-wide VIC-II register ($D021),
         // so it must be the same for the whole image: pick the most frequent color overall.
-        int globalBackground = ComputeGlobalBackground(colorIndices);
+        int globalBackground = ComputeGlobalBackground(colorIndices, brightnessBias);
         output.BackgroundColor = (byte)globalBackground;
 
         // Process each 8x8 character cell (40 columns x 25 rows).
@@ -226,7 +341,7 @@ public class MulticolorConverter
 
                 // Extract the 4x8 block and find the best 3 foreground colors for this cell
                 var blockColors = ExtractBlockColors(colorIndices, cx * CELL_PIXEL_WIDTH, cy * CELL_PIXEL_HEIGHT);
-                int[] fgColors = SelectBestColors(blockColors, globalBackground);
+                int[] fgColors = SelectBestColors(blockColors, globalBackground, brightnessBias);
 
                 // Generate bitmap data for this character cell
                 for (int y = 0; y < CELL_PIXEL_HEIGHT; y++)
@@ -258,10 +373,16 @@ public class MulticolorConverter
     }
 
     /// <summary>
-    /// Finds the single color used most often across the whole (working-resolution) image,
-    /// to be used as the screen-wide VIC-II background color.
+    /// Finds the color to be used as the screen-wide VIC-II background color, favoring the most
+    /// frequent color across the whole (working-resolution) image but weighting the choice by
+    /// brightness so that dark colors (e.g. black) are only picked when they are strongly dominant.
     /// </summary>
-    private int ComputeGlobalBackground(int[,] colorIndices)
+    /// <param name="colorIndices">Per-pixel palette indices for the whole working-resolution image.</param>
+    /// <param name="brightnessBias">
+    /// Bias strength; 0.0 reproduces the original "pure most frequent color" behavior.
+    /// See <see cref="ConvertImage"/> for details.
+    /// </param>
+    private int ComputeGlobalBackground(int[,] colorIndices, double brightnessBias)
     {
         int[] counts = new int[16];
         for (int y = 0; y < SCREEN_HEIGHT; y++)
@@ -273,16 +394,81 @@ public class MulticolorConverter
         }
 
         int best = 0;
-        int bestCount = -1;
+        double bestScore = -1;
         for (int i = 0; i < 16; i++)
         {
-            if (counts[i] > bestCount)
+            double score = counts[i] * BrightnessWeight(i, brightnessBias);
+            if (score > bestScore)
             {
-                bestCount = counts[i];
+                bestScore = score;
                 best = i;
             }
         }
         return best;
+    }
+
+    /// <summary>
+    /// Computes a multiplicative weight for palette color <paramref name="colorIndex"/> based on its
+    /// luminance: colors brighter than mid-gray get a weight above 1.0 (favored), darker colors get a
+    /// weight below 1.0 (penalized). Used to nudge color-frequency-based selection towards brighter
+    /// colors without ignoring frequency entirely.
+    /// </summary>
+    /// <param name="colorIndex">Index (0-15) into the C64 palette.</param>
+    /// <param name="brightnessBias">Bias strength (0.0 = no effect); see <see cref="ConvertImage"/>.</param>
+    private static double BrightnessWeight(int colorIndex, double brightnessBias) =>
+        1.0 + brightnessBias * (PaletteLuminance[colorIndex] / 255.0 - 0.5);
+
+    /// <summary>
+    /// Finds the index of the closest matching C64 palette color for a given RGB value, optionally biasing
+    /// the choice towards brighter palette colors.
+    /// </summary>
+    /// <param name="r">The red component (0-255).</param>
+    /// <param name="g">The green component (0-255).</param>
+    /// <param name="b">The blue component (0-255).</param>
+    /// <param name="brightnessBias">
+    /// Bias strength; <c>0.0</c> makes this behave exactly like <see cref="C64Palette.FindClosestColor"/>
+    /// (plain nearest-color by Euclidean RGB distance). Positive values divide each candidate color's squared
+    /// distance by its <see cref="BrightnessWeight"/>, so brighter colors effectively appear "closer" and win
+    /// ties or near-ties against darker colors; strongly dominant colors (much closer in RGB space than any
+    /// alternative) are still selected regardless of bias, since the bias only reshuffles close calls.
+    /// </param>
+    /// <returns>The index (0-15) of the selected C64 palette color.</returns>
+    /// <remarks>
+    /// Unlike <see cref="BrightnessWeight"/>-based frequency selection (used for background/foreground color
+    /// picking after quantization), this method operates at the individual-pixel level, so it also affects
+    /// undithered (flat, plain nearest-color) quantization output, where large uniform regions would otherwise
+    /// be completely unaffected by a purely count-based bias.
+    /// </remarks>
+    private static int FindClosestColorBiased(byte r, byte g, byte b, double brightnessBias)
+    {
+        if (brightnessBias == 0.0)
+        {
+            return C64Palette.FindClosestColor(r, g, b);
+        }
+
+        int closestIndex = 0;
+        double minScore = double.MaxValue;
+
+        for (int i = 0; i < C64Palette.ColorsRgb.Length; i++)
+        {
+            var c = C64Palette.ColorsRgb[i];
+            int dr = r - c.r;
+            int dg = g - c.g;
+            int db = b - c.b;
+            double distance = dr * dr + dg * dg + db * db;
+
+            // Dividing by the brightness weight makes brighter colors "appear" closer than they
+            // strictly are, biasing near-ties (and only near-ties) towards brighter palette entries.
+            double score = distance / BrightnessWeight(i, brightnessBias);
+
+            if (score < minScore)
+            {
+                minScore = score;
+                closestIndex = i;
+            }
+        }
+
+        return closestIndex;
     }
 
     /// <summary>
@@ -304,11 +490,16 @@ public class MulticolorConverter
 
     /// <summary>
     /// Selects the best 3 foreground colors for a cell, given the fixed, screen-wide background color.
-    /// The 3 most frequent colors in the block (excluding the background) are chosen; if the block
-    /// contains fewer than 3 distinct non-background colors, the remaining slots are filled with the
-    /// background color itself (harmless, since GetMulticolorIndex will map matching pixels to index 0 anyway).
+    /// The 3 colors in the block (excluding the background) with the highest brightness-weighted score
+    /// are chosen, so that among colors with similar frequency, brighter ones are preferred over dark
+    /// ones; if the block contains fewer than 3 distinct non-background colors, the remaining slots are
+    /// filled with the background color itself (harmless, since GetMulticolorIndex will map matching
+    /// pixels to index 0 anyway).
     /// </summary>
-    private int[] SelectBestColors(int[] blockColors, int globalBackground)
+    /// <param name="blockColors">Palette indices of every pixel in the 4x8 cell block.</param>
+    /// <param name="globalBackground">The fixed, screen-wide background color index for this image.</param>
+    /// <param name="brightnessBias">Bias strength (0.0 = no effect); see <see cref="ConvertImage"/>.</param>
+    private int[] SelectBestColors(int[] blockColors, int globalBackground, double brightnessBias)
     {
         int[] colorCounts = new int[16];
         foreach (int c in blockColors)
@@ -319,7 +510,7 @@ public class MulticolorConverter
 
         var topColors = Enumerable.Range(0, 16)
             .Where(i => i != globalBackground && colorCounts[i] > 0)
-            .OrderByDescending(i => colorCounts[i])
+            .OrderByDescending(i => colorCounts[i] * BrightnessWeight(i, brightnessBias))
             .Take(3)
             .ToList();
 

@@ -5,7 +5,7 @@ root = true
 [*.cs]
 
 #### Core EditorConfig Options ####
-file_header_template = -----------------------------------------------------------------------\n<copyright file="[filename]" company="Casasoft">\nauthor: Roberto Ceccarelli (http://strawberryfield.altervista.org)\nCopyright (c) 2025 All rights reserved.\n </copyright>\n\n This file is part of Casasoft Commodore Utils\n https://github.com/strawberryfield/CommodoreUtils\n\n Casasoft Commodore Utils is free software:\n you can redistribute it and/or modify it\n under the terms of the GNU Affero General Public License as published by\n the Free Software Foundation, either version 3 of the License, or\n (at your option) any later version.\n\n Casasoft Commodore Utils is distributed in the hope that it will be useful,\n but WITHOUT ANY WARRANTY\n-----------------------------------------------------------------------
+file_header_template = -----------------------------------------------------------------------\n<copyright file="[filename]" company="Casasoft">\nauthor: Roberto Ceccarelli (http://strawberryfield.altervista.org)\nCopyright (c) 2026 All rights reserved.\n </copyright>\n\n This file is part of Casasoft Commodore Utils\n https://github.com/strawberryfield/CommodoreUtils\n\n Casasoft Commodore Utils is free software:\n you can redistribute it and/or modify it\n under the terms of the GNU Affero General Public License as published by\n the Free Software Foundation, either version 3 of the License, or\n (at your option) any later version.\n\n Casasoft Commodore Utils is distributed in the hope that it will be useful,\n but WITHOUT ANY WARRANTY\n-----------------------------------------------------------------------
 
 # Indentation and spacing
 indent_size = 4

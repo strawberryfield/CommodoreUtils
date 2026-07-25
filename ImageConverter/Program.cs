@@ -1,7 +1,7 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="ImageConverter/Program.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
-//     Copyright (c) 2025 All rights reserved.
+//     Copyright (c) 2026 All rights reserved.
 // </copyright>
 //
 // This file is part of Casasoft Commodore Utils
@@ -20,8 +20,6 @@
 using Casasoft.Commodore;
 using Casasoft.Helpers;
 using Mono.Options;
-using SkiaSharp;
-using System.Text;
 
 #region main
 bool ShouldShowHelp = false;
@@ -33,6 +31,11 @@ ushort PixelAddress = Convert.ToUInt16(PixelAddressString.Substring(1), 16);
 ushort ColorAddress = Convert.ToUInt16(ColorAddressString.Substring(1), 16);
 ushort BackgroundAddress = Convert.ToUInt16(BackgroundAddressString.Substring(1), 16);
 string OutputFile = string.Empty;
+bool UseDithering = true;
+double BrightnessBias = 0.35;
+string BrightnessBiasString = string.Empty;
+string BrightnessModeString = "both";
+BrightnessBiasMode BrightnessMode = BrightnessBiasMode.Both;
 
 OptionSet p = new()
 {
@@ -42,6 +45,9 @@ OptionSet p = new()
     { "c|coloraddress=", "Color address (default 0xC000)", c => ColorAddressString = c },
     { "b|backgroundaddress=", "Background color address (default 0xD021, the VIC-II background register)", b => BackgroundAddressString = b },
     { "o|out=", "Output file name (default same as input with .PRG extension)", o => OutputFile = o },
+    { "d|no-dither", "Disable Floyd-Steinberg dithering (plain nearest-color quantization)", d => UseDithering = d == null },
+    { "brightness=", "Brightness bias 0.0-1.0 favoring brighter colors over dark ones when choosing background/foreground colors (default 0.35, 0 = original behavior). Accepts '.' or ',' as decimal separator", v => BrightnessBiasString = v },
+    { "brightness-mode=", "Where to apply the brightness bias: 'quantization' (per-pixel color choice, visible even without dithering), 'selection' (background/foreground color choice from frequency counts, original behavior), or 'both' (default)", m => BrightnessModeString = m },
 };
 
 List<string> FilesList = FileHelpers.ExpandWildcards(p.Parse(args));
@@ -73,6 +79,21 @@ if (!string.IsNullOrWhiteSpace(BackgroundAddressString))
         "Invalid background address '{0}' using default $D021");
 }
 
+if (!string.IsNullOrWhiteSpace(BrightnessBiasString))
+{
+    BrightnessBias = CommandLineHelpers.GetDoubleParameter(BrightnessBiasString, BrightnessBias,
+        "Invalid brightness value '{0}' using default 0.35");
+}
+
+if (!string.IsNullOrWhiteSpace(BrightnessModeString))
+{
+    if (!Enum.TryParse(BrightnessModeString, true, out BrightnessMode))
+    {
+        Console.WriteLine($"Invalid brightness mode '{BrightnessModeString}', using default 'both'");
+        BrightnessMode = BrightnessBiasMode.Both;
+    }
+}
+
 IPrgFile prg;
 foreach (string file in FilesList)
 {
@@ -81,7 +102,7 @@ foreach (string file in FilesList)
     {
         filename = file;
     }
-    filename = Path.GetFileNameWithoutExtension(filename);
+    filename = Path.Combine(Path.GetDirectoryName(filename) ?? string.Empty, Path.GetFileNameWithoutExtension(filename));
 
     // Load image using SkiaSharp
     using var fs = File.OpenRead(file);
@@ -99,7 +120,7 @@ foreach (string file in FilesList)
     }
 
     MulticolorConverter converter = new MulticolorConverter();
-    C64MulticolorData result = converter.ConvertImage(skBitmap);
+    C64MulticolorData result = converter.ConvertImage(skBitmap, UseDithering, BrightnessBias, BrightnessMode);
 
     prg = new PrgFile(PixelAddress, result.BitmapData);
     prg.Save(filename + ".bm.prg");
@@ -115,19 +136,18 @@ foreach (string file in FilesList)
     prg = new PrgFile(BackgroundAddress, new byte[] { result.BackgroundColor });
     prg.Save(filename + ".bg.prg");
 
-    Console.WriteLine($"{filename}: background color = {result.BackgroundColor} (POKE {BackgroundAddress},{result.BackgroundColor})");
 }
 #endregion
 
 #region Procedures
 void ShowHelp()
 {
-    Console.WriteLine("Usage: Text2Prg [OPTIONS] FILES");
-    Console.WriteLine("Converts a text or a list of strings into a .PRG file\n");
+    Console.WriteLine("Usage: ImageConverter [OPTIONS] FILES");
+    Console.WriteLine("Converts an image into .PRG files\n");
     Console.WriteLine("Options:");
     p.WriteOptionDescriptions(Console.Out);
     Console.WriteLine($"\n{CommandLineHelpers.HexParameterNote}");
 }
 
-void ShowBanner() => Console.WriteLine("Casasoft Text2Prg v1.0\ncopyright (c) 2025 Roberto Ceccarelli - Casasoft\n");
+void ShowBanner() => Console.WriteLine("Casasoft ImageConverter v1.0\ncopyright (c) 2026 Roberto Ceccarelli - Casasoft\n");
 #endregion

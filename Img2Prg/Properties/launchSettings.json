@@ -2,7 +2,7 @@
   "profiles": {
     "Img2Prg": {
       "commandName": "Project",
-      "commandLineArgs": "--address=0xA000 C:\\Commodore\\projects\\adventure\\player2026\\cover.txt"
+      "commandLineArgs": "-p $E000 -c $C000 -d --brightness=4 -o \"C:\\projects\\CommodoreUtils\\ImageConverter\\c64\\testq4\" \"C:\\projects\\CommodoreUtils\\ImageConverter\\c64\\test.jpg\""
     }
   }
 }

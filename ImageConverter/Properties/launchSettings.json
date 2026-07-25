@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ImageConverter": {
+      "commandName": "Project",
+      "commandLineArgs": "-p $E000 -c $C000 --brightness=40 -o \"C:\\projects\\CommodoreUtils\\ImageConverter\\c64\\test40\" \"C:\\projects\\CommodoreUtils\\ImageConverter\\c64\\test.jpg\""
+    }
+  }
+}

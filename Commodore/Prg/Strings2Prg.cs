@@ -17,8 +17,6 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
-using System.Text;
-
 namespace Casasoft.Commodore;
 
 /// <summary>

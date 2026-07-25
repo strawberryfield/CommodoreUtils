@@ -1,4 +1,23 @@
-﻿using SkiaSharp;
+//-----------------------------------------------------------------------
+// <copyright file="MulticolorConverter.cs" company="Casasoft">
+//     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
+//     Copyright (c) 2025 All rights reserved.
+// </copyright>
+//
+// This file is part of Casasoft Commodore Utils
+// https://github.com/strawberryfield/CommodoreUtils
+//
+// Casasoft Commodore Utils is free software:
+// you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Casasoft Commodore Utils is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY
+//-----------------------------------------------------------------------
+
+using SkiaSharp;
 
 namespace Casasoft.Commodore;
 
@@ -12,9 +31,16 @@ namespace Casasoft.Commodore;
 /// <item><description>Generates multicolor bitmap data, color RAM, and screen RAM compatible with C64 hardware.</description></item>
 /// </list>
 /// 
-/// The C64 multicolor mode uses 8x8 pixel character cells, allowing 4 colors per cell:
-/// one background color (shared across the entire screen) and 3 foreground colors (per cell).
-/// Each pixel is represented by 2 bits in the bitmap data.
+/// The C64 multicolor bitmap mode uses 8x8 pixel character cells. Each cell has 4 "double-wide"
+/// logical pixels per row (2 bits per pixel, each pixel rendered 2 screen-pixels wide), so a cell
+/// covers 4x8 logical pixels which map 1:1 onto the 160x200 working resolution used here.
+/// Each cell can use up to 4 colors:
+/// <list type="bullet">
+/// <item><description>bit-pattern 00 -&gt; the single, screen-wide background color (VIC-II $D021)</description></item>
+/// <item><description>bit-pattern 01 -&gt; Screen RAM high nibble (per cell)</description></item>
+/// <item><description>bit-pattern 10 -&gt; Screen RAM low nibble (per cell)</description></item>
+/// <item><description>bit-pattern 11 -&gt; Color RAM low nibble (per cell)</description></item>
+/// </list>
 /// </summary>
 public class MulticolorConverter
 {
@@ -24,8 +50,17 @@ public class MulticolorConverter
     /// <summary>The height of the C64 screen (200 pixels).</summary>
     private const int SCREEN_HEIGHT = 200;
 
-    /// <summary>The width of a multicolor character cell block in pixels (8).</summary>
-    private const int MULTICOLOR_BLOCK_WIDTH = 8;
+    /// <summary>The width, in logical multicolor pixels, of a character cell (4 double-wide pixels = 8 screen pixels).</summary>
+    private const int CELL_PIXEL_WIDTH = 4;
+
+    /// <summary>The height, in pixels, of a character cell (8).</summary>
+    private const int CELL_PIXEL_HEIGHT = 8;
+
+    /// <summary>Number of character columns on screen (40).</summary>
+    private const int CHAR_COLUMNS = 40;
+
+    /// <summary>Number of character rows on screen (25).</summary>
+    private const int CHAR_ROWS = 25;
 
     /// <summary>
     /// Represents accumulated color error values for Floyd-Steinberg dithering.
@@ -47,7 +82,7 @@ public class MulticolorConverter
     /// Converts an RGB image to C64 multicolor format.
     /// </summary>
     /// <param name="input">The input image as an SKBitmap to be converted.</param>
-    /// <returns>A <see cref="C64MulticolorData"/> object containing the bitmap data, color RAM, and screen RAM.</returns>
+    /// <returns>A <see cref="C64MulticolorData"/> object containing the bitmap data, color RAM, screen RAM and background color.</returns>
     public C64MulticolorData ConvertImage(SKBitmap input)
     {
         var result = new C64MulticolorData();
@@ -58,7 +93,7 @@ public class MulticolorConverter
         // Step 2: Apply Floyd-Steinberg dithering to C64 palette
         using var dithered = ApplyDithering(downscaled);
 
-        // Step 3: Generate multicolor bitmap data, color RAM, and screen RAM
+        // Step 3: Generate multicolor bitmap data, color RAM, screen RAM and background color
         GenerateMulticolorData(dithered, result);
 
         return result;
@@ -157,13 +192,13 @@ public class MulticolorConverter
     }
 
     /// <summary>
-    /// Generates the multicolor bitmap data, color RAM, and screen RAM for the C64.
+    /// Generates the multicolor bitmap data, color RAM, screen RAM and background color for the C64.
     /// </summary>
     /// <param name="input">The dithered 160x200 image with C64 palette colors.</param>
-    /// <param name="output">The output structure to populate with bitmap and RAM data.</param>
+    /// <param name="output">The output structure to populate with bitmap, RAM data and background color.</param>
     private void GenerateMulticolorData(SKBitmap input, C64MulticolorData output)
     {
-        // Get color indices for all pixels
+        // Get color indices for all pixels (160x200 working resolution, 1:1 with multicolor logical pixels)
         int[,] colorIndices = new int[SCREEN_WIDTH, SCREEN_HEIGHT];
         for (int y = 0; y < SCREEN_HEIGHT; y++)
         {
@@ -174,56 +209,92 @@ public class MulticolorConverter
             }
         }
 
-        // Process each 8x8 character cell (40 columns x 25 rows)
-        for (int cy = 0; cy < 25; cy++)
+        // The background color (bit-pattern 00) is a single, screen-wide VIC-II register ($D021),
+        // so it must be the same for the whole image: pick the most frequent color overall.
+        int globalBackground = ComputeGlobalBackground(colorIndices);
+        output.BackgroundColor = (byte)globalBackground;
+
+        // Process each 8x8 character cell (40 columns x 25 rows).
+        // In source-pixel terms each cell is CELL_PIXEL_WIDTH (4) x CELL_PIXEL_HEIGHT (8),
+        // matching the 160x200 working resolution (40*4=160, 25*8=200).
+        for (int cy = 0; cy < CHAR_ROWS; cy++)
         {
-            for (int cx = 0; cx < 40; cx++)
+            for (int cx = 0; cx < CHAR_COLUMNS; cx++)
             {
-                int screenOffset = cy * 40 + cx;
-                int bitmapOffset = cy * 40 * 8 + cx * 8;
+                int screenOffset = cy * CHAR_COLUMNS + cx;
+                int bitmapOffset = cy * CHAR_COLUMNS * CELL_PIXEL_HEIGHT + cx * CELL_PIXEL_HEIGHT;
 
-                // Extract the 8x8 block and find best 4 colors
-                // Extract the 8x8 block (4 multicolor-pixel wide x 8 rows) and find best 4 colors
-                var blockColors = ExtractBlockColors(colorIndices, cx * 4, cy * 8);
+                // Extract the 4x8 block and find the best 3 foreground colors for this cell
+                var blockColors = ExtractBlockColors(colorIndices, cx * CELL_PIXEL_WIDTH, cy * CELL_PIXEL_HEIGHT);
+                int[] fgColors = SelectBestColors(blockColors, globalBackground);
 
-                // Select background (most frequent color) and 3 foreground colors
-                var (bgColor, fgColors) = SelectBestColors(blockColors);
-
-                // Generate bitmap data for this character
-                for (int y = 0; y < 8; y++)
+                // Generate bitmap data for this character cell
+                for (int y = 0; y < CELL_PIXEL_HEIGHT; y++)
                 {
                     byte bitmapByte = 0;
-                    for (int x = 0; x < 4; x++)
+                    for (int x = 0; x < CELL_PIXEL_WIDTH; x++)
                     {
-                        int pixelX = cx * 4 + x;
-                        int pixelY = cy * 8 + y;
+                        int pixelX = cx * CELL_PIXEL_WIDTH + x;
+                        int pixelY = cy * CELL_PIXEL_HEIGHT + y;
                         int colorIndex = colorIndices[pixelX, pixelY];
 
-                        // Find which of the 4 colors this is
-                        int multicolorIndex = GetMulticolorIndex(colorIndex, bgColor, fgColors);
+                        // Find which of the 4 available colors (bg + 3 fg) this pixel is closest to
+                        int multicolorIndex = GetMulticolorIndex(colorIndex, globalBackground, fgColors);
 
-                        // Pack 2 bits per pixel, leftmost pixel in the high bits
-                        bitmapByte |= (byte)((multicolorIndex & 0x03) << ((3 - x) * 2));
+                        // Pack 2 bits per pixel, MSB first (leftmost logical pixel in bits 7-6)
+                        int shift = (CELL_PIXEL_WIDTH - 1 - x) * 2;
+                        bitmapByte |= (byte)((multicolorIndex & 0x03) << shift);
                     }
                     output.BitmapData[bitmapOffset + y] = bitmapByte;
                 }
 
-                // Set Color RAM (foreground color - we use the first foreground color as main)
-                output.ColorRam[screenOffset] = (byte)fgColors[0];
+                // Screen RAM: high nibble = bit-pattern 01 color, low nibble = bit-pattern 10 color
+                output.ScreenRam[screenOffset] = (byte)(((fgColors[0] & 0x0F) << 4) | (fgColors[1] & 0x0F));
 
-                // Set Screen RAM (background color in lower nibble)
-                output.ScreenRam[screenOffset] = (byte)(bgColor & 0x0F);
+                // Color RAM: bit-pattern 11 color
+                output.ColorRam[screenOffset] = (byte)(fgColors[2] & 0x0F);
             }
         }
     }
 
+    /// <summary>
+    /// Finds the single color used most often across the whole (working-resolution) image,
+    /// to be used as the screen-wide VIC-II background color.
+    /// </summary>
+    private int ComputeGlobalBackground(int[,] colorIndices)
+    {
+        int[] counts = new int[16];
+        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < SCREEN_WIDTH; x++)
+            {
+                counts[colorIndices[x, y]]++;
+            }
+        }
+
+        int best = 0;
+        int bestCount = -1;
+        for (int i = 0; i < 16; i++)
+        {
+            if (counts[i] > bestCount)
+            {
+                bestCount = counts[i];
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Extracts the color indices of a CELL_PIXEL_WIDTH x CELL_PIXEL_HEIGHT block starting at (startX, startY).
+    /// </summary>
     private int[] ExtractBlockColors(int[,] colorIndices, int startX, int startY)
     {
-        var colors = new int[32]; // 4 (larghezza in pixel-multicolor) x 8 (altezza)
+        var colors = new int[CELL_PIXEL_WIDTH * CELL_PIXEL_HEIGHT];
         int index = 0;
-        for (int y = 0; y < 8; y++)
+        for (int y = 0; y < CELL_PIXEL_HEIGHT; y++)
         {
-            for (int x = 0; x < 4; x++)
+            for (int x = 0; x < CELL_PIXEL_WIDTH; x++)
             {
                 colors[index++] = colorIndices[startX + x, startY + y];
             }
@@ -231,7 +302,13 @@ public class MulticolorConverter
         return colors;
     }
 
-    private (int bgColor, int[] fgColors) SelectBestColors(int[] blockColors)
+    /// <summary>
+    /// Selects the best 3 foreground colors for a cell, given the fixed, screen-wide background color.
+    /// The 3 most frequent colors in the block (excluding the background) are chosen; if the block
+    /// contains fewer than 3 distinct non-background colors, the remaining slots are filled with the
+    /// background color itself (harmless, since GetMulticolorIndex will map matching pixels to index 0 anyway).
+    /// </summary>
+    private int[] SelectBestColors(int[] blockColors, int globalBackground)
     {
         int[] colorCounts = new int[16];
         foreach (int c in blockColors)
@@ -240,48 +317,22 @@ public class MulticolorConverter
                 colorCounts[c]++;
         }
 
-        int bgColor = 0;
-        int maxCount = 0;
-        for (int i = 0; i < 16; i++)
-        {
-            if (colorCounts[i] > maxCount)
-            {
-                maxCount = colorCounts[i];
-                bgColor = i;
-            }
-        }
+        var topColors = Enumerable.Range(0, 16)
+            .Where(i => i != globalBackground && colorCounts[i] > 0)
+            .OrderByDescending(i => colorCounts[i])
+            .Take(3)
+            .ToList();
 
-        int[] fgColors = new int[3];
-        int[] fgCounts = new int[3];
-        for (int i = 0; i < 16; i++)
-        {
-            if (i == bgColor) continue;
+        while (topColors.Count < 3)
+            topColors.Add(globalBackground);
 
-            for (int j = 0; j < 3; j++)
-            {
-                if (fgCounts[j] < colorCounts[i] || fgCounts[j] == 0)
-                {
-                    for (int k = 2; k > j; k--)
-                    {
-                        fgCounts[k] = fgCounts[k - 1];
-                        fgColors[k] = fgColors[k - 1];
-                    }
-                    fgColors[j] = i;
-                    fgCounts[j] = colorCounts[i];
-                    break;
-                }
-            }
-        }
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (fgColors[i] == 0 && fgCounts[i] == 0)
-                fgColors[i] = bgColor;
-        }
-
-        return (bgColor, fgColors);
+        return topColors.ToArray();
     }
 
+    /// <summary>
+    /// Maps a pixel's palette color index to one of the 4 colors available for its cell
+    /// (background + 3 foreground colors), choosing the closest match if there is no exact hit.
+    /// </summary>
     private int GetMulticolorIndex(int pixelColor, int bgColor, int[] fgColors)
     {
         if (pixelColor == bgColor) return 0;

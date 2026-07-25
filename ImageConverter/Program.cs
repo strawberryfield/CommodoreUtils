@@ -28,8 +28,10 @@ bool ShouldShowHelp = false;
 bool ShouldSuppressBanner = false;
 string PixelAddressString = "$E000";
 string ColorAddressString = "$C000";
+string BackgroundAddressString = "$D021";
 ushort PixelAddress = Convert.ToUInt16(PixelAddressString.Substring(1), 16);
 ushort ColorAddress = Convert.ToUInt16(ColorAddressString.Substring(1), 16);
+ushort BackgroundAddress = Convert.ToUInt16(BackgroundAddressString.Substring(1), 16);
 string OutputFile = string.Empty;
 
 OptionSet p = new()
@@ -38,6 +40,7 @@ OptionSet p = new()
     { "h|?|help", "Show this help", v => ShouldShowHelp = v != null },
     { "p|pixeladdress=", "Pixel address (default 0xE000)", p => PixelAddressString = p },
     { "c|coloraddress=", "Color address (default 0xC000)", c => ColorAddressString = c },
+    { "b|backgroundaddress=", "Background color address (default 0xD021, the VIC-II background register)", b => BackgroundAddressString = b },
     { "o|out=", "Output file name (default same as input with .PRG extension)", o => OutputFile = o },
 };
 
@@ -62,6 +65,12 @@ if (!string.IsNullOrWhiteSpace(ColorAddressString))
 {
     ColorAddress = (ushort)CommandLineHelpers.GetIntParameter(ColorAddressString, ColorAddress,
         "Invalid color address '{0}' using default $C000");
+}
+
+if (!string.IsNullOrWhiteSpace(BackgroundAddressString))
+{
+    BackgroundAddress = (ushort)CommandLineHelpers.GetIntParameter(BackgroundAddressString, BackgroundAddress,
+        "Invalid background address '{0}' using default $D021");
 }
 
 IPrgFile prg;
@@ -92,12 +101,21 @@ foreach (string file in FilesList)
     MulticolorConverter converter = new MulticolorConverter();
     C64MulticolorData result = converter.ConvertImage(skBitmap);
 
-    prg = new PrgFile(PixelAddress,result.BitmapData);
-    prg.Save(filename+".bm.prg");
+    prg = new PrgFile(PixelAddress, result.BitmapData);
+    prg.Save(filename + ".bm.prg");
     prg = new PrgFile(ColorAddress, result.ScreenRam);
-    prg.Save(filename+".sc.prg");
+    prg.Save(filename + ".sc.prg");
     prg = new PrgFile(0xD800, result.ColorRam);
     prg.Save(filename + ".co.prg");
+
+    // Background color (VIC-II "00" bit-pattern) is a single, screen-wide register value.
+    // By default it targets $D021 directly: loading this 1-byte PRG with
+    // LOAD"filename.bg.prg",8,1 writes the byte straight into the background
+    // color register, since $D021 sits in the CPU-visible I/O area.
+    prg = new PrgFile(BackgroundAddress, new byte[] { result.BackgroundColor });
+    prg.Save(filename + ".bg.prg");
+
+    Console.WriteLine($"{filename}: background color = {result.BackgroundColor} (POKE {BackgroundAddress},{result.BackgroundColor})");
 }
 #endregion
 

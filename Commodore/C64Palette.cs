@@ -1,4 +1,23 @@
-﻿using System.Drawing;
+﻿//-----------------------------------------------------------------------
+// <copyright file="C64Palette.cs" company="Casasoft">
+//     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
+//     Copyright (c) 2025 All rights reserved.
+// </copyright>
+//
+// This file is part of Casasoft Commodore Utils
+// https://github.com/strawberryfield/CommodoreUtils
+//
+// Casasoft Commodore Utils is free software:
+// you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Casasoft Commodore Utils is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY
+//-----------------------------------------------------------------------
+
+using System.Drawing;
 
 namespace Casasoft.Commodore;
 

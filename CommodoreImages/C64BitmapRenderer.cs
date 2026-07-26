@@ -143,6 +143,11 @@ public static class C64BitmapRenderer
 
     private static ushort[] ToQuantumArray(MagickColor c)
     {
-        return new ushort[] { c.R, c.G, c.B, c.A };
+        // Converte ogni canale da 0..255 al range Quantum dell'assemblato corrente (0..65535 in Q16)
+        ushort r = (ushort)Math.Round(c.R * (double)Quantum.Max / 255.0);
+        ushort g = (ushort)Math.Round(c.G * (double)Quantum.Max / 255.0);
+        ushort b = (ushort)Math.Round(c.B * (double)Quantum.Max / 255.0);
+
+        return new ushort[] { r, g, b };
     }
 }

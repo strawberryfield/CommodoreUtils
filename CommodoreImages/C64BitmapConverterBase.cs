@@ -174,8 +174,9 @@ public class C64BitmapConverterBase
     /// </remarks>
     protected MagickImage ApplyDithering(MagickImage input, double brightnessBias = 0.0)
     {
-        var output = new MagickImage(MagickColors.Black, (uint)ScreenWidth, (uint)ScreenHeight);
-        output.HasAlpha = false;
+        // Usa MagickColor.FromRgb invece di MagickColors.Black per evitare di creare il canale Alpha
+        var output = new MagickImage(MagickColor.FromRgb(0, 0, 0), (uint)ScreenWidth, (uint)ScreenHeight);
+        output.Alpha(AlphaOption.Off); // Rimuove esplicitamente il canale alpha
         var errorBuffer = new Error[ScreenWidth + 2, ScreenHeight + 2];
 
         using var inputPixels = input.GetPixels();
@@ -202,9 +203,13 @@ public class C64BitmapConverterBase
                 int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
+                // Nella scrittura del pixel, includi il valore Quantum.Max per l'Alpha se l'immagine ha 4 canali
                 outputPixels.SetPixel(x, y, new ushort[]
                 {
-                    ScaleToQuantum(c64Color.r), ScaleToQuantum(c64Color.g), ScaleToQuantum(c64Color.b)
+                    ScaleToQuantum(c64Color.r),
+                    ScaleToQuantum(c64Color.g),
+                    ScaleToQuantum(c64Color.b),
+                    Quantum.Max
                 });
 
                 // Calculate error
@@ -257,8 +262,8 @@ public class C64BitmapConverterBase
     /// <returns>A quantized SKBitmap with colors mapped to the C64 palette, without dithering.</returns>
     protected MagickImage ApplyQuantization(MagickImage input, double brightnessBias = 0.0)
     {
-        var output = new MagickImage(MagickColors.Black, (uint)ScreenWidth, (uint)ScreenHeight);
-        output.HasAlpha = false;
+        var output = new MagickImage(MagickColor.FromRgb(0, 0, 0), (uint)ScreenWidth, (uint)ScreenHeight);
+        output.Alpha(AlphaOption.Off);
 
         using var inputPixels = input.GetPixels();
         using var outputPixels = output.GetPixels();
@@ -275,7 +280,10 @@ public class C64BitmapConverterBase
 
                 outputPixels.SetPixel(x, y, new ushort[]
                 {
-                    ScaleToQuantum(c64Color.r), ScaleToQuantum(c64Color.g), ScaleToQuantum(c64Color.b)
+                    ScaleToQuantum(c64Color.r),
+                    ScaleToQuantum(c64Color.g),
+                    ScaleToQuantum(c64Color.b),
+                    Quantum.Max
                 });
             }
         }

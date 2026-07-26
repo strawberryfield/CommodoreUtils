@@ -56,8 +56,8 @@ CommodoreUtils.sln
 │   ├── C64Palette.cs     # C64 16-color palette definitions
 │   ├── C64MulticolorData.cs # Multicolor bitmap container (8KB bitmap, 1KB color RAM, 1KB screen RAM)
 │   ├── C64HiresData.cs      # Hires bitmap container (8KB bitmap, 1KB screen RAM)
-│   ├── MulticolorConverter.cs # Image to C64 multicolor conversion (SkiaSharp)
-│   └── HiresConverter.cs     # Image to C64 hires conversion (SkiaSharp)
+│   ├── MulticolorConverter.cs # Image to C64 multicolor conversion (Magick.NET)
+│   └── HiresConverter.cs     # Image to C64 hires conversion (Magick.NET)
 ├── Pet2Ascii/            # PETSCII .SEQ to ASCII converter
 ├── A2Petscii/           # ASCII to PETSCII .SEQ converter
 ├── Text2Prg/            # Text/string to .PRG converter
@@ -69,7 +69,7 @@ CommodoreUtils.sln
 ### Dependencies
 
 - **Mono.Options** - Command-line parsing (all executable projects)
-- **SkiaSharp** - Image processing (for ImageConverter and CommodoreImages)
+- **Magick.NET (ImageMagick)** - Image processing (for ImageConverter and CommodoreImages)
 
 ## Tools
 

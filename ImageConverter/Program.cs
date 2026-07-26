@@ -20,6 +20,7 @@
 using Casasoft.Commodore;
 using Casasoft.Commodore.Images;
 using Casasoft.Helpers;
+using ImageMagick;
 using Mono.Options;
 
 #region main
@@ -107,53 +108,58 @@ foreach (string file in FilesList)
     }
     filename = Path.Combine(Path.GetDirectoryName(filename) ?? string.Empty, Path.GetFileNameWithoutExtension(filename));
 
-    // Load image using SkiaSharp
-    using var fs = File.OpenRead(file);
-    using var skBitmap = SkiaSharp.SKBitmap.Decode(fs);
-    if (skBitmap == null)
+    // Load image using Magick.NET (ImageMagick)
+    MagickImage magickImage;
+    try
     {
-        Console.WriteLine($"Error: Failed to load image {file}");
+        magickImage = new MagickImage(file);
+    }
+    catch (MagickException ex)
+    {
+        Console.WriteLine($"Error: Failed to load image {file} ({ex.Message})");
         return;
     }
-
-    if (skBitmap.Width != 320 || skBitmap.Height != 200)
+    using (magickImage)
     {
-        Console.WriteLine($"Error: Image must be 320x200 pixels, got {skBitmap.Width}x{skBitmap.Height}");
-        return;
-    }
+        if (magickImage.Width != 320 || magickImage.Height != 200)
+        {
+            Console.WriteLine($"Error: Image must be 320x200 pixels, got {magickImage.Width}x{magickImage.Height}");
+            return;
+        }
 
-    if (UseHires)
-    {
-        HiresConverter hiresConverter = new HiresConverter();
-        C64HiresData hiresResult = hiresConverter.ConvertImage(skBitmap, UseDithering, BrightnessBias, BrightnessMode);
+        if (UseHires)
+        {
+            HiresConverter hiresConverter = new HiresConverter();
+            C64HiresData hiresResult = hiresConverter.ConvertImage(magickImage, UseDithering, BrightnessBias, BrightnessMode);
 
-        prg = new PrgFile(PixelAddress, hiresResult.BitmapData);
-        prg.Save(filename + ".bm.prg");
-        prg = new PrgFile(ColorAddress, hiresResult.ScreenRam);
-        prg.Save(filename + ".sc.prg");
+            prg = new PrgFile(PixelAddress, hiresResult.BitmapData);
+            prg.Save(filename + ".bm.prg");
+            prg = new PrgFile(ColorAddress, hiresResult.ScreenRam);
+            prg.Save(filename + ".sc.prg");
 
-        // Standard hires bitmap mode has no Color RAM and does not use the VIC-II background
-        // register ($D021): both colors of every cell live entirely in Screen RAM, so no
-        // .co.prg or .bg.prg files are produced here (unlike the multicolor converter below).
-    }
-    else
-    {
-        MulticolorConverter converter = new MulticolorConverter();
-        C64MulticolorData result = converter.ConvertImage(skBitmap, UseDithering, BrightnessBias, BrightnessMode);
+            // Standard hires bitmap mode has no Color RAM and does not use the VIC-II background
+            // register ($D021): both colors of every cell live entirely in Screen RAM, so no
+            // .co.prg or .bg.prg files are produced here (unlike the multicolor converter below).
+        }
+        else
+        {
+            MulticolorConverter converter = new MulticolorConverter();
+            C64MulticolorData result = converter.ConvertImage(magickImage, UseDithering, BrightnessBias, BrightnessMode);
 
-        prg = new PrgFile(PixelAddress, result.BitmapData);
-        prg.Save(filename + ".bm.prg");
-        prg = new PrgFile(ColorAddress, result.ScreenRam);
-        prg.Save(filename + ".sc.prg");
-        prg = new PrgFile(0xD800, result.ColorRam);
-        prg.Save(filename + ".co.prg");
+            prg = new PrgFile(PixelAddress, result.BitmapData);
+            prg.Save(filename + ".bm.prg");
+            prg = new PrgFile(ColorAddress, result.ScreenRam);
+            prg.Save(filename + ".sc.prg");
+            prg = new PrgFile(0xD800, result.ColorRam);
+            prg.Save(filename + ".co.prg");
 
-        // Background color (VIC-II "00" bit-pattern) is a single, screen-wide register value.
-        // By default it targets $D021 directly: loading this 1-byte PRG with
-        // LOAD"filename.bg.prg",8,1 writes the byte straight into the background
-        // color register, since $D021 sits in the CPU-visible I/O area.
-        prg = new PrgFile(BackgroundAddress, new byte[] { result.BackgroundColor });
-        prg.Save(filename + ".bg.prg");
+            // Background color (VIC-II "00" bit-pattern) is a single, screen-wide register value.
+            // By default it targets $D021 directly: loading this 1-byte PRG with
+            // LOAD"filename.bg.prg",8,1 writes the byte straight into the background
+            // color register, since $D021 sits in the CPU-visible I/O area.
+            prg = new PrgFile(BackgroundAddress, new byte[] { result.BackgroundColor });
+            prg.Save(filename + ".bg.prg");
+        }
     }
 }
 #endregion

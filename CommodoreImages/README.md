@@ -16,17 +16,19 @@ A library for converting images to Commodore 64 bitmap formats. Supports both mu
 
 ## Dependencies
 
-- **SkiaSharp** - Image processing
+- **Magick.NET (ImageMagick)** - Image processing
 
 ## Usage
 
 ```csharp
+using ImageMagick;
 using Casasoft.Commodore;
+using Casasoft.Commodore.Images;
 
 // Load an image and convert to multicolor format
-using var bitmap = SKBitmap.Decode("input.png");
+using var image = new MagickImage("input.png");
 var converter = new MulticolorConverter();
-var result = converter.ConvertImage(bitmap, useDithering: true, brightnessBias: 0.35);
+var result = converter.ConvertImage(image, useDithering: true, brightnessBias: 0.35);
 
 // Access the resulting data
 byte[] bitmapData = result.BitmapData;  // 8KB

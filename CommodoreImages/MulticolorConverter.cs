@@ -17,7 +17,7 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
-using SkiaSharp;
+using ImageMagick;
 
 namespace Casasoft.Commodore.Images;
 
@@ -54,7 +54,7 @@ public enum BrightnessBiasMode
 }
 
 /// <summary>
-/// Converts RGB images to Commodore 64 multicolor bitmap format using SkiaSharp.
+/// Converts RGB images to Commodore 64 multicolor bitmap format using Magick.NET (ImageMagick).
 ///
 /// This class implements a three-stage conversion process:
 /// <list type="number">
@@ -121,7 +121,7 @@ public class MulticolorConverter
     /// <summary>
     /// Converts an RGB image to C64 multicolor format.
     /// </summary>
-    /// <param name="input">The input image as an SKBitmap to be converted.</param>
+    /// <param name="input">The input image as a <see cref="MagickImage"/> to be converted.</param>
     /// <param name="useDithering">
     /// If <see langword="true"/> (default), Floyd-Steinberg error-diffusion dithering is applied while
     /// quantizing colors to the C64 palette. If <see langword="false"/>, each pixel is simply mapped to
@@ -147,7 +147,7 @@ public class MulticolorConverter
     /// which is visible even without dithering.
     /// </param>
     /// <returns>A <see cref="C64MulticolorData"/> object containing the bitmap data, color RAM, screen RAM and background color.</returns>
-    public C64MulticolorData ConvertImage(SKBitmap input, bool useDithering = true, double brightnessBias = 0.35,
+    public C64MulticolorData ConvertImage(MagickImage input, bool useDithering = true, double brightnessBias = 0.35,
         BrightnessBiasMode brightnessMode = BrightnessBiasMode.Both)
     {
         var result = new C64MulticolorData();
@@ -176,19 +176,20 @@ public class MulticolorConverter
     /// Downscales the input image to C64 screen dimensions (160x200).
     /// </summary>
     /// <param name="input">The source image to downscale.</param>
-    /// <returns>A new SKBitmap resized to 160x200 pixels.</returns>
-    private SKBitmap DownscaleImage(SKBitmap input)
+    /// <returns>A new <see cref="MagickImage"/> resized to 160x200 pixels.</returns>
+    private MagickImage DownscaleImage(MagickImage input)
     {
-        var info = new SKImageInfo(SCREEN_WIDTH, SCREEN_HEIGHT, input.ColorType, input.AlphaType);
-        var output = new SKBitmap(info);
+        var output = (MagickImage)input.Clone();
+        output.HasAlpha = false;
 
-        // SKSamplingOptions con filtro lineare ed effetto mipmap lineare (equivalente a una qualità alta)
-        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        // Linear filter with mipmap-like smoothing, equivalent to a high-quality resize.
+        output.FilterType = FilterType.Triangle;
 
-        if (!input.ScalePixels(output, sampling))
+        var geometry = new MagickGeometry((uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT)
         {
-            throw new InvalidOperationException("Failed to scale image.");
-        }
+            IgnoreAspectRatio = true
+        };
+        output.Resize(geometry);
 
         return output;
     }
@@ -202,25 +203,27 @@ public class MulticolorConverter
     /// <see cref="FindClosestColorBiased"/>). <c>0.0</c> reproduces the original unbiased nearest-color
     /// behavior.
     /// </param>
-    /// <returns>A dithered SKBitmap with colors quantized to the C64 palette.</returns>
-    private SKBitmap ApplyDithering(SKBitmap input, double brightnessBias = 0.0)
+    /// <returns>A dithered <see cref="MagickImage"/> with colors quantized to the C64 palette.</returns>
+    private MagickImage ApplyDithering(MagickImage input, double brightnessBias = 0.0)
     {
-        // Enforce a standard 32-bit RGBA or BGRA target format to easily manipulate pixels safely
-        var info = new SKImageInfo(SCREEN_WIDTH, SCREEN_HEIGHT, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        var output = new SKBitmap(info);
+        var output = new MagickImage(MagickColors.Black, (uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT);
+        output.HasAlpha = false;
         var errorBuffer = new Error[SCREEN_WIDTH + 2, SCREEN_HEIGHT + 2];
+
+        using var inputPixels = input.GetPixels();
+        using var outputPixels = output.GetPixels();
 
         // Process each pixel
         for (int y = 0; y < SCREEN_HEIGHT; y++)
         {
             for (int x = 0; x < SCREEN_WIDTH; x++)
             {
-                var pixel = input.GetPixel(x, y);
+                var pixel = inputPixels.GetPixel(x, y).ToColor()!;
 
                 // Add error diffusion
-                int r = pixel.Red + (int)Math.Round(errorBuffer[x, y].R);
-                int g = pixel.Green + (int)Math.Round(errorBuffer[x, y].G);
-                int b = pixel.Blue + (int)Math.Round(errorBuffer[x, y].B);
+                int r = pixel.R + (int)Math.Round(errorBuffer[x, y].R);
+                int g = pixel.G + (int)Math.Round(errorBuffer[x, y].G);
+                int b = pixel.B + (int)Math.Round(errorBuffer[x, y].B);
 
                 // Clamp values
                 r = Math.Max(0, Math.Min(255, r));
@@ -231,7 +234,7 @@ public class MulticolorConverter
                 int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                output.SetPixel(x, y, new SKColor((byte)c64Color.r, (byte)c64Color.g, (byte)c64Color.b));
+                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
 
                 // Calculate error
                 int errR = r - c64Color.r;
@@ -281,24 +284,26 @@ public class MulticolorConverter
     /// counts, this is the only way to make the brightness bias visibly affect undithered output — biasing
     /// only the background/foreground selection stage has little to no effect here.
     /// </param>
-    /// <returns>A quantized SKBitmap with colors mapped to the C64 palette, without dithering.</returns>
-    private SKBitmap ApplyQuantization(SKBitmap input, double brightnessBias = 0.0)
+    /// <returns>A quantized <see cref="MagickImage"/> with colors mapped to the C64 palette, without dithering.</returns>
+    private MagickImage ApplyQuantization(MagickImage input, double brightnessBias = 0.0)
     {
-        // Enforce a standard 32-bit RGBA target format to easily manipulate pixels safely
-        var info = new SKImageInfo(SCREEN_WIDTH, SCREEN_HEIGHT, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        var output = new SKBitmap(info);
+        var output = new MagickImage(MagickColors.Black, (uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT);
+        output.HasAlpha = false;
+
+        using var inputPixels = input.GetPixels();
+        using var outputPixels = output.GetPixels();
 
         for (int y = 0; y < SCREEN_HEIGHT; y++)
         {
             for (int x = 0; x < SCREEN_WIDTH; x++)
             {
-                var pixel = input.GetPixel(x, y);
+                var pixel = inputPixels.GetPixel(x, y).ToColor()!;
 
                 // Find closest C64 color, optionally biased towards brighter palette colors; no error diffusion applied
-                int closestColor = FindClosestColorBiased(pixel.Red, pixel.Green, pixel.Blue, brightnessBias);
+                int closestColor = FindClosestColorBiased(pixel.R, pixel.G, pixel.B, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                output.SetPixel(x, y, new SKColor((byte)c64Color.r, (byte)c64Color.g, (byte)c64Color.b));
+                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
             }
         }
 
@@ -311,16 +316,19 @@ public class MulticolorConverter
     /// <param name="input">The dithered 160x200 image with C64 palette colors.</param>
     /// <param name="output">The output structure to populate with bitmap, RAM data and background color.</param>
     /// <param name="brightnessBias">See <see cref="ConvertImage"/> for details.</param>
-    private void GenerateMulticolorData(SKBitmap input, C64MulticolorData output, double brightnessBias)
+    private void GenerateMulticolorData(MagickImage input, C64MulticolorData output, double brightnessBias)
     {
         // Get color indices for all pixels (160x200 working resolution, 1:1 with multicolor logical pixels)
         int[,] colorIndices = new int[SCREEN_WIDTH, SCREEN_HEIGHT];
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
+        using (var inputPixels = input.GetPixels())
         {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
+            for (int y = 0; y < SCREEN_HEIGHT; y++)
             {
-                var pixel = input.GetPixel(x, y);
-                colorIndices[x, y] = C64Palette.FindClosestColor(pixel.Red, pixel.Green, pixel.Blue);
+                for (int x = 0; x < SCREEN_WIDTH; x++)
+                {
+                    var pixel = inputPixels.GetPixel(x, y).ToColor()!;
+                    colorIndices[x, y] = C64Palette.FindClosestColor(pixel.R, pixel.G, pixel.B);
+                }
             }
         }
 

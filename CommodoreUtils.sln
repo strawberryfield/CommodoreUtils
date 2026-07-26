@@ -29,8 +29,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageConverter", "ImageConv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageConverterGUI", "ImageConverterGUI\ImageConverterGUI.csproj", "{F4E24787-9B72-0201-330A-A7AE2F00C2CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Casasoft.Avalonia.Controls", "..\AvaloniaControls\Casasoft.Avalonia.Controls\Casasoft.Avalonia.Controls.csproj", "{22E501FC-9BCA-3A3E-76C2-4F76ED7801E6}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,10 +75,6 @@ Global
 		{F4E24787-9B72-0201-330A-A7AE2F00C2CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4E24787-9B72-0201-330A-A7AE2F00C2CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4E24787-9B72-0201-330A-A7AE2F00C2CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{22E501FC-9BCA-3A3E-76C2-4F76ED7801E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{22E501FC-9BCA-3A3E-76C2-4F76ED7801E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{22E501FC-9BCA-3A3E-76C2-4F76ED7801E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{22E501FC-9BCA-3A3E-76C2-4F76ED7801E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

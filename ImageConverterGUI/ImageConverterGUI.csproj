@@ -17,6 +17,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+    <PackageReference Include="Casasoft.Avalonia.Controls" Version="1.0.0" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
     <!--
       Deliberately the SAME quantum depth (Q8) used by CommodoreImages.csproj, so that the
@@ -26,7 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AvaloniaControls\Casasoft.Avalonia.Controls\Casasoft.Avalonia.Controls.csproj" />
     <ProjectReference Include="..\Commodore\Commodore.csproj" />
     <ProjectReference Include="..\CommodoreImages\CommodoreImages.csproj" />
     <ProjectReference Include="..\Helpers\Helpers.csproj" />

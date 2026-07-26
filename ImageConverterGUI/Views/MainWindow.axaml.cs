@@ -161,6 +161,10 @@ public partial class MainWindow : Window
     /// Saves the current preview image (as shown in the viewer) to a user-chosen file, in
     /// PNG, JPEG or BMP format depending on the chosen extension.
     /// </summary>
+    /// <summary>
+    /// Saves the current preview image (as shown in the viewer) to a user-chosen file, in
+    /// PNG, JPEG or BMP format depending on the chosen file type / extension.
+    /// </summary>
     private async void btnSavePreview_Click(object? sender, RoutedEventArgs e)
     {
         if (_previewImage is null) return;
@@ -168,16 +172,20 @@ public partial class MainWindow : Window
         IStorageProvider? storageProvider = StorageProvider;
         if (storageProvider is null) return;
 
+        string suggestedBaseName = Path.GetFileNameWithoutExtension(ftbInput.Value) is { Length: > 0 } n
+            ? n + "_preview"
+            : "preview";
+
+        var pngType = new FilePickerFileType("PNG") { Patterns = new[] { "*.png" } };
+        var jpgType = new FilePickerFileType("JPEG") { Patterns = new[] { "*.jpg", "*.jpeg" } };
+        var bmpType = new FilePickerFileType("BMP") { Patterns = new[] { "*.bmp" } };
+
         IStorageFile? file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Salva anteprima",
-            SuggestedFileName = "preview.png",
-            FileTypeChoices = new[]
-            {
-                new FilePickerFileType("PNG") { Patterns = new[] { "*.png" } },
-                new FilePickerFileType("JPEG") { Patterns = new[] { "*.jpg", "*.jpeg" } },
-                new FilePickerFileType("BMP") { Patterns = new[] { "*.bmp" } },
-            }
+            SuggestedFileName = suggestedBaseName + ".png",
+            DefaultExtension = "png",
+            FileTypeChoices = new[] { pngType, jpgType, bmpType }
         });
 
         if (file is null) return;
@@ -189,12 +197,28 @@ public partial class MainWindow : Window
             return;
         }
 
-        MagickFormat format = Path.GetExtension(localPath).ToLowerInvariant() switch
+        // Determina il formato dall'estensione effettiva del percorso scelto dall'utente,
+        // aggiungendola se mancante (alcuni storage provider non la impostano automaticamente).
+        string ext = Path.GetExtension(localPath).ToLowerInvariant();
+        MagickFormat format;
+        switch (ext)
         {
-            ".jpg" or ".jpeg" => MagickFormat.Jpg,
-            ".bmp" => MagickFormat.Bmp,
-            _ => MagickFormat.Png,
-        };
+            case ".jpg":
+            case ".jpeg":
+                format = MagickFormat.Jpg;
+                break;
+            case ".bmp":
+                format = MagickFormat.Bmp;
+                break;
+            case ".png":
+                format = MagickFormat.Png;
+                break;
+            default:
+                // Nessuna estensione (o non riconosciuta): forza .png e aggiungila al path.
+                format = MagickFormat.Png;
+                localPath += ".png";
+                break;
+        }
 
         _previewImage.Write(localPath, format);
         txtStatus.Text = $"Anteprima salvata in {localPath}";

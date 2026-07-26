@@ -57,6 +57,26 @@ public class C64BitmapConverterBase
     protected int CellPixelHeight { get; }
 
     /// <summary>
+    /// Initializes the shared conversion pipeline with the working resolution and character-cell
+    /// size used by a concrete converter (multicolor or hires).
+    /// </summary>
+    /// <param name="screenWidth">Width, in pixels, of the working resolution (e.g. 160 for multicolor, 320 for hires).</param>
+    /// <param name="screenHeight">Height, in pixels, of the working resolution (200 for both modes).</param>
+    /// <param name="cellPixelWidth">Width, in pixels, of a character cell in the working resolution.</param>
+    /// <param name="cellPixelHeight">Height, in pixels, of a character cell (8 for both modes).</param>
+    /// <remarks>
+    /// Without this constructor, <see cref="ScreenWidth"/>/<see cref="ScreenHeight"/>/<see cref="CellPixelWidth"/>/
+    /// <see cref="CellPixelHeight"/> default to 0, which makes <see cref="DownscaleImage"/> build a "0x0!"
+    /// resize geometry and causes ImageMagick to throw <c>MagickImageErrorException: negative or zero image size</c>.
+    /// </remarks>
+    protected C64BitmapConverterBase(int screenWidth, int screenHeight, int cellPixelWidth, int cellPixelHeight)
+    {
+        ScreenWidth = screenWidth;
+        ScreenHeight = screenHeight;
+        CellPixelWidth = cellPixelWidth;
+        CellPixelHeight = cellPixelHeight;
+    }
+    /// <summary>
     /// Perceptual luminance (0..255) of each C64 palette color, used to bias color selection
     /// towards brighter colors.
     /// </summary>
@@ -79,6 +99,27 @@ public class C64BitmapConverterBase
         /// <summary>Blue channel error accumulation.</summary>
         public double B;
     }
+
+    /// <summary>
+    /// Scala un canale pixel dal range quantum corrente di ImageMagick (es. 0-65535 con
+    /// Magick.NET-Q16, 0-255 con Q8) al range fisso 0-255 usato da <see cref="C64Palette.ColorsRgb"/>.
+    /// </summary>
+    /// <remarks>
+    /// Senza questa conversione, confrontare un pixel Q16 (0-65535) direttamente con la
+    /// palette C64 (0-255) rende la ricerca del "colore più vicino" priva di senso: la
+    /// distanza è dominata dai valori enormi del pixel e quasi tutti i pixel finiscono per
+    /// abbinarsi ai colori più chiari della palette (tipicamente il bianco), producendo
+    /// un risultato quasi completamente vuoto/bianco.
+    /// </remarks>
+    protected static byte ScaleToByte(double quantumValue) =>
+        (byte)Math.Clamp(Math.Round(quantumValue * 255.0 / Quantum.Max), 0, 255);
+
+    /// <summary>
+    /// Scala un canale 0-255 (come memorizzato in <see cref="C64Palette.ColorsRgb"/>) al
+    /// range quantum corrente di ImageMagick, per poterlo riscrivere in un pixel di <see cref="MagickImage"/>.
+    /// </summary>
+    protected static ushort ScaleToQuantum(byte byteValue) =>
+        (ushort)Math.Round(byteValue * (double)Quantum.Max / 255.0);
 
     /// <summary>
     /// Downscales the input image to this converter's working resolution
@@ -147,10 +188,10 @@ public class C64BitmapConverterBase
             {
                 var pixel = inputPixels.GetPixel(x, y).ToColor()!;
 
-                // Add error diffusion
-                int r = pixel.R + (int)Math.Round(errorBuffer[x, y].R);
-                int g = pixel.G + (int)Math.Round(errorBuffer[x, y].G);
-                int b = pixel.B + (int)Math.Round(errorBuffer[x, y].B);
+                // Add error diffusion (pixel e palette confrontati sempre nel range fisso 0-255)
+                int r = ScaleToByte(pixel.R) + (int)Math.Round(errorBuffer[x, y].R);
+                int g = ScaleToByte(pixel.G) + (int)Math.Round(errorBuffer[x, y].G);
+                int b = ScaleToByte(pixel.B) + (int)Math.Round(errorBuffer[x, y].B);
 
                 // Clamp values
                 r = Math.Max(0, Math.Min(255, r));
@@ -161,7 +202,10 @@ public class C64BitmapConverterBase
                 int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                outputPixels.SetPixel(x, y, new ushort[] { c64Color.r, c64Color.g, c64Color.b });
+                outputPixels.SetPixel(x, y, new ushort[]
+                {
+                    ScaleToQuantum(c64Color.r), ScaleToQuantum(c64Color.g), ScaleToQuantum(c64Color.b)
+                });
 
                 // Calculate error
                 int errR = r - c64Color.r;
@@ -225,11 +269,14 @@ public class C64BitmapConverterBase
             {
                 var pixel = inputPixels.GetPixel(x, y).ToColor()!;
 
-                // Find closest C64 color, optionally biased towards brighter palette colors; no error diffusion applied
-                int closestColor = FindClosestColorBiased(pixel.R, pixel.G, pixel.B, brightnessBias);
+                int closestColor = FindClosestColorBiased(
+                    ScaleToByte(pixel.R), ScaleToByte(pixel.G), ScaleToByte(pixel.B), brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                outputPixels.SetPixel(x, y, new ushort[] { c64Color.r, c64Color.g, c64Color.b });
+                outputPixels.SetPixel(x, y, new ushort[]
+                {
+                    ScaleToQuantum(c64Color.r), ScaleToQuantum(c64Color.g), ScaleToQuantum(c64Color.b)
+                });
             }
         }
 

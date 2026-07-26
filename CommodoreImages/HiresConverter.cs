@@ -55,6 +55,14 @@ public class HiresConverter : C64BitmapConverterBase, IC64BitmapConverter<C64Hir
     private const int CELL_PIXEL_HEIGHT = 8;
 
     /// <summary>
+    /// Initializes a new <see cref="HiresConverter"/>, wiring the 320x200/8x8 working resolution
+    /// into the shared base pipeline (see <see cref="C64BitmapConverterBase"/>).
+    /// </summary>
+    public HiresConverter() : base(SCREEN_WIDTH, SCREEN_HEIGHT, CELL_PIXEL_WIDTH, CELL_PIXEL_HEIGHT)
+    {
+    }
+
+    /// <summary>
     /// Converts an RGB image to C64 hires (2-color) format.
     /// </summary>
     /// <param name="input">The input image as a <see cref="MagickImage"/> to be converted.</param>
@@ -121,7 +129,8 @@ public class HiresConverter : C64BitmapConverterBase, IC64BitmapConverter<C64Hir
                 for (int x = 0; x < SCREEN_WIDTH; x++)
                 {
                     var pixel = inputPixels.GetPixel(x, y).ToColor()!;
-                    colorIndices[x, y] = C64Palette.FindClosestColor(pixel.R, pixel.G, pixel.B);
+                    colorIndices[x, y] = C64Palette.FindClosestColor(
+                        ScaleToByte(pixel.R), ScaleToByte(pixel.G), ScaleToByte(pixel.B));
                 }
             }
         }

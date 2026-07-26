@@ -113,7 +113,7 @@ public static class C64Palette
     /// Uses Euclidean distance in 3D RGB color space to determine the closest match.
     /// This is useful for color quantization when converting arbitrary RGB images to Commodore 64 palette.
     /// </remarks>
-    public static int FindClosestColor(byte r, byte g, byte b)
+    public static int FindClosestColor(ushort r, ushort g, ushort b)
     {
         int closestIndex = 0;
         int minDistance = int.MaxValue;

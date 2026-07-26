@@ -65,7 +65,8 @@ public static class C64BitmapRenderer
                             int pixelX = cellX * 8 + col;
                             bool isBitSet = (rowByte & (0x80 >> col)) != 0;
 
-                            pixels.SetPixel(pixelX, pixelY, (isBitSet ? fgColor : bgColor).ToByteArray());
+                            var writeColor = isBitSet ? fgColor : bgColor;
+                            pixels.SetPixel(pixelX, pixelY, ToQuantumArray(writeColor));
                         }
                     }
                 }
@@ -128,8 +129,9 @@ public static class C64BitmapRenderer
                             int pixelX = (cellX * 8) + (col * 2);
 
                             // Disegna 2 pixel adiacenti per mantenere le proporzioni corrette (320x200)
-                            pixels.SetPixel(pixelX, pixelY, pixelColor.ToByteArray());
-                            pixels.SetPixel(pixelX + 1, pixelY, pixelColor.ToByteArray());
+                            var q = ToQuantumArray(pixelColor);
+                            pixels.SetPixel(pixelX, pixelY, q);
+                            pixels.SetPixel(pixelX + 1, pixelY, q);
                         }
                     }
                 }
@@ -137,5 +139,10 @@ public static class C64BitmapRenderer
         }
 
         return image;
+    }
+
+    private static ushort[] ToQuantumArray(MagickColor c)
+    {
+        return new ushort[] { c.R, c.G, c.B, c.A };
     }
 }

@@ -161,7 +161,7 @@ public class C64BitmapConverterBase
                 int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
+                outputPixels.SetPixel(x, y, new ushort[] { c64Color.r, c64Color.g, c64Color.b });
 
                 // Calculate error
                 int errR = r - c64Color.r;
@@ -229,7 +229,7 @@ public class C64BitmapConverterBase
                 int closestColor = FindClosestColorBiased(pixel.R, pixel.G, pixel.B, brightnessBias);
                 var c64Color = C64Palette.ColorsRgb[closestColor];
 
-                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
+                outputPixels.SetPixel(x, y, new ushort[] { c64Color.r, c64Color.g, c64Color.b });
             }
         }
 
@@ -267,7 +267,7 @@ public class C64BitmapConverterBase
     /// nearest-color) quantization output, where large uniform regions would otherwise be completely
     /// unaffected by a purely count-based bias applied only at selection time.
     /// </remarks>
-    protected static int FindClosestColorBiased(byte r, byte g, byte b, double brightnessBias)
+    protected static int FindClosestColorBiased(ushort r, ushort g, ushort b, double brightnessBias)
     {
         if (brightnessBias == 0.0)
         {

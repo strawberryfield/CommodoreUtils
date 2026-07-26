@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>Casasoft.ImageConverterGUI</AssemblyName>
+    <RootNamespace>Casasoft.ImageConverterGUI</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
+    <!--
+      Deliberately the SAME quantum depth (Q8) used by CommodoreImages.csproj, so that the
+      MagickImage type produced by the converters can be used directly in this project.
+      See the note on the Casasoft.Avalonia.Controls reference below.
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AvaloniaControls\Casasoft.Avalonia.Controls\Casasoft.Avalonia.Controls.csproj" />
+    <ProjectReference Include="..\Commodore\Commodore.csproj" />
+    <ProjectReference Include="..\CommodoreImages\CommodoreImages.csproj" />
+    <ProjectReference Include="..\Helpers\Helpers.csproj" />
+
+    <!--
+      Casasoft.Avalonia.Controls (FileTextBox, FileTextBoxLabel, NumericUpDown, ImageViewer)
+      lives in the separate "Contemporary_CDV" repository/solution. Adjust the relative path
+      below to match your local checkout layout, e.g.:
+
+        ..\..\Contemporary_CDV\Casasoft.Avalonia.Controls\Casasoft.Avalonia.Controls.csproj
+
+      IMPORTANT: that project's README states it depends on Magick.NET-Q16-AnyCPU (only used
+      internally by ImageViewer.SetImage(MagickImage)). This GUI intentionally never calls that
+      overload - see ToAvaloniaBitmap() in MainWindow.axaml.cs - and instead sets ImageViewer.Source
+      (a plain Avalonia Bitmap) directly, so the Q8 (here) / Q16 (there) quantum-depth mismatch
+      never causes a type conflict, even though both packages are present in the build.
+    -->
+  </ItemGroup>
+
+	<!--
+    No explicit <AvaloniaResource> entries needed: the Avalonia SDK already globs
+    **/*.axaml as AvaloniaResource by default. Adding it again here would cause
+    MainWindow.axaml to be compiled twice, producing "Duplicate x:Class directive".
+  -->
+
+
+</Project>

@@ -26,7 +26,7 @@ Provides C64MulticolorData, C64HiresData, C64Palette, MulticolorConverter and Hi
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.15.0" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
   </ItemGroup>
 
   <ItemGroup>

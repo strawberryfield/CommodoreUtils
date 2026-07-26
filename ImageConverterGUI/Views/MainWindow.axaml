@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:casasoft="clr-namespace:Casasoft.Avalonia.Controls;assembly=Casasoft.Avalonia.Controls"
+        x:Class="Casasoft.ImageConverterGUI.Views.MainWindow"
+        Title="Casasoft Image Converter"
+        Width="1000" Height="640" MinWidth="860" MinHeight="560">
+
+  <Grid ColumnDefinitions="380,*" Margin="10">
+
+    <!-- ================= LEFT: parameters and commands ================= -->
+    <ScrollViewer Grid.Column="0" Margin="0,0,10,0">
+      <StackPanel Spacing="10">
+
+        <casasoft:FileTextBoxLabel
+            x:Name="ftbInput"
+            Caption="Immagine sorgente"
+            OpenFileDialogTitle="Seleziona immagine sorgente"
+            OpenFileDialogFilter="Immagini (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp;*.tga;*.psd)|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp;*.tga;*.psd|Tutti i file (*.*)|*.*" />
+
+        <TextBlock Text="Formato Commodore 64" FontWeight="Bold" />
+        <StackPanel Spacing="4">
+          <RadioButton x:Name="rbMulticolor" GroupName="Mode"
+                       Content="Multicolor (160x200, 4 colori per cella)" IsChecked="True" />
+          <RadioButton x:Name="rbHires" GroupName="Mode"
+                       Content="Hires (320x200, 2 colori per cella)" />
+        </StackPanel>
+
+        <CheckBox x:Name="chkDither" Content="Applica dithering Floyd-Steinberg" IsChecked="True" />
+
+        <TextBlock Text="Bias luminosità (0.0 = nessun bias, 1.0 = forte)" FontWeight="Bold" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="*,50">
+          <Slider x:Name="sldBrightness" Grid.Column="0"
+                  Minimum="0" Maximum="1" Value="0.35"
+                  TickFrequency="0.05"
+                  ValueChanged="sldBrightness_ValueChanged" />
+          <TextBlock x:Name="txtBrightnessValue" Grid.Column="1" Text="0.35"
+                     VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
+
+        <TextBlock Text="Applica il bias a" FontWeight="Bold" />
+        <ComboBox x:Name="cmbBrightnessMode" HorizontalAlignment="Stretch" SelectedIndex="3">
+          <ComboBoxItem Content="Nessuno" />
+          <ComboBoxItem Content="Solo quantizzazione pixel" />
+          <ComboBoxItem Content="Solo selezione colori cella" />
+          <ComboBoxItem Content="Entrambi (default)" />
+        </ComboBox>
+
+        <TextBlock Text="Indirizzi di memoria C64" FontWeight="Bold" />
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Bitmap:"
+                     VerticalAlignment="Center" Margin="0,0,8,4" />
+          <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtPixelAddress" Text="$E000" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Schermo:"
+                     VerticalAlignment="Center" Margin="0,0,8,4" />
+          <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtColorAddress" Text="$C000" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="Sfondo:"
+                     VerticalAlignment="Center" Margin="0,0,8,0" />
+          <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtBackgroundAddress" Text="$D021" />
+        </Grid>
+        <TextBlock Text="Lo sfondo si usa solo in modalità Multicolor; la Color RAM è fissa a $D800, come in ImageConverter."
+                   FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+
+        <Button x:Name="btnConvert" Content="Converti" HorizontalAlignment="Stretch"
+                Click="btnConvert_Click" />
+
+        <Separator Margin="0,6" />
+
+        <Button x:Name="btnSavePreview" Content="Salva anteprima..." HorizontalAlignment="Stretch"
+                Click="btnSavePreview_Click" IsEnabled="False" />
+        <Button x:Name="btnSaveC64" Content="Salva file Commodore 64..." HorizontalAlignment="Stretch"
+                Click="btnSaveC64_Click" IsEnabled="False" />
+
+        <TextBlock x:Name="txtStatus" TextWrapping="Wrap" Foreground="Gray" Margin="0,10,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ================= RIGHT: preview ================= -->
+    <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Background="Black">
+      <casasoft:ImageViewer x:Name="imgPreview" />
+    </Border>
+
+  </Grid>
+</Window>

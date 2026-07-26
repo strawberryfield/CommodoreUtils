@@ -17,6 +17,8 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using ImageMagick;
+
 namespace Casasoft.Commodore.Images;
 
 /// <summary>
@@ -69,4 +71,9 @@ public class C64MulticolorData : IC64BitmapData
         Console.WriteLine($"Saved files with base path: {basePath}");
         Console.WriteLine($"Background color (POKE 53281,{BackgroundColor}): {BackgroundColor}");
     }
+
+    /// <summary>
+    /// Restituisce l'immagine bitmap Multicolor (renderizzata a 320x200) visualizzata come su C64.
+    /// </summary>
+    public MagickImage ToMagickImage() => C64BitmapRenderer.ToMagickImage(this);
 }

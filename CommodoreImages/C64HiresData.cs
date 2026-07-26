@@ -17,6 +17,8 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using ImageMagick;
+
 namespace Casasoft.Commodore.Images;
 
 /// <summary>
@@ -58,4 +60,9 @@ public class C64HiresData : IC64BitmapData
         File.WriteAllBytes($"{basePath}_screenram.bin", this.ScreenRam);
         Console.WriteLine($"Saved files with base path: {basePath}");
     }
+
+    /// <summary>
+    /// Restituisce l'immagine bitmap Hires (320x200 pixel) visualizzata come su C64.
+    /// </summary>
+    public MagickImage ToMagickImage() => C64BitmapRenderer.ToMagickImage(this);
 }

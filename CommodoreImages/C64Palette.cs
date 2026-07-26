@@ -17,6 +17,7 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using ImageMagick;
 using System.Drawing;
 
 namespace Casasoft.Commodore.Images;
@@ -133,5 +134,14 @@ public static class C64Palette
         }
 
         return closestIndex;
+    }
+
+    /// <summary>
+    /// Restituisce il valore MagickColor corrispondente all'indice di colore C64 basato su ColorsRgb.
+    /// </summary>
+    public static MagickColor GetMagickColor(int colorIndex)
+    {
+        var (r, g, b) = C64Palette.ColorsRgb[colorIndex & 0x0F];
+        return new MagickColor(r, g, b);
     }
 }

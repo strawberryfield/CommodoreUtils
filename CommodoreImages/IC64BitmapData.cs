@@ -17,6 +17,8 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
+using ImageMagick;
+
 namespace Casasoft.Commodore.Images;
 
 /// <summary>
@@ -39,4 +41,9 @@ public interface IC64BitmapData
     /// </summary>
     /// <param name="basePath">The base file path (without extension) for saving binary files.</param>
     void SaveToFile(string basePath);
+
+    /// <summary>
+    /// Genera una MagickImage rappresentativa dell'immagine così come verrebbe mostrata su C64 (320x200).
+    /// </summary>
+    MagickImage ToMagickImage();
 }

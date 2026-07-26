@@ -30,7 +30,7 @@ namespace Casasoft.Commodore.Images;
 /// VIC-II background color register ($D021): both colors available in each 8x8 character cell are
 /// entirely encoded in <see cref="ScreenRam"/>.
 /// </remarks>
-public class C64HiresData
+public class C64HiresData : IC64BitmapData
 {
     /// <summary>
     /// Gets or sets the bitmap data containing character patterns.

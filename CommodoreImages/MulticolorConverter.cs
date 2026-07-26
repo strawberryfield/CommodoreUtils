@@ -42,7 +42,7 @@ namespace Casasoft.Commodore.Images;
 /// <item><description>bit-pattern 11 -&gt; Color RAM low nibble (per cell)</description></item>
 /// </list>
 /// </summary>
-public class MulticolorConverter : C64BitmapConverterBase
+public class MulticolorConverter : C64BitmapConverterBase, IC64BitmapConverter<C64MulticolorData>
 {
     /// <summary>The width of the C64 screen in multicolor pixels (160).</summary>
     private const int SCREEN_WIDTH = 160;

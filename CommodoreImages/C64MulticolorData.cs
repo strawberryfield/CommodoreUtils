@@ -25,7 +25,7 @@ namespace Casasoft.Commodore.Images;
 /// bitmap data (character definitions), color RAM (per-cell color information), and screen RAM (character codes),
 /// plus the single, screen-wide background color register value.
 /// </summary>
-public class C64MulticolorData
+public class C64MulticolorData : IC64BitmapData
 {
     /// <summary>
     /// Gets or sets the bitmap data containing character patterns.

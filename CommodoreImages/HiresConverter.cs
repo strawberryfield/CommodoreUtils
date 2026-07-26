@@ -40,7 +40,7 @@ namespace Casasoft.Commodore.Images;
 /// <item><description>bit value 1 -&gt; Screen RAM high nibble (per-cell foreground color)</description></item>
 /// </list>
 /// </summary>
-public class HiresConverter : C64BitmapConverterBase
+public class HiresConverter : C64BitmapConverterBase, IC64BitmapConverter<C64HiresData>
 {
     /// <summary>The width of the C64 screen in hires pixels (320).</summary>
     private const int SCREEN_WIDTH = 320;

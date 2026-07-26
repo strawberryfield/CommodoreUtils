@@ -98,7 +98,11 @@ if (!string.IsNullOrWhiteSpace(BrightnessModeString))
     }
 }
 
-IPrgFile prg;
+// Inizializza il convertitore generico in base al flag UseHires
+IC64BitmapConverter<IC64BitmapData> converter = UseHires
+    ? new HiresConverter()
+    : new MulticolorConverter();
+
 foreach (string file in FilesList)
 {
     string filename = OutputFile;
@@ -127,37 +131,23 @@ foreach (string file in FilesList)
             return;
         }
 
-        if (UseHires)
+        // Conversione polimorfica (gestisce sia Hires che Multicolor)
+        IC64BitmapData result = converter.ConvertImage(magickImage, UseDithering, BrightnessBias, BrightnessMode);
+
+        // Salvataggio dei file PRG comuni (BitmapData e ScreenRam)
+        IPrgFile prg = new PrgFile(PixelAddress, result.BitmapData);
+        prg.Save(filename + ".bm.prg");
+
+        prg = new PrgFile(ColorAddress, result.ScreenRam);
+        prg.Save(filename + ".sc.prg");
+
+        // Salvataggio dei dati specifici per la modalità Multicolor
+        if (result is C64MulticolorData multicolorResult)
         {
-            HiresConverter hiresConverter = new HiresConverter();
-            C64HiresData hiresResult = hiresConverter.ConvertImage(magickImage, UseDithering, BrightnessBias, BrightnessMode);
-
-            prg = new PrgFile(PixelAddress, hiresResult.BitmapData);
-            prg.Save(filename + ".bm.prg");
-            prg = new PrgFile(ColorAddress, hiresResult.ScreenRam);
-            prg.Save(filename + ".sc.prg");
-
-            // Standard hires bitmap mode has no Color RAM and does not use the VIC-II background
-            // register ($D021): both colors of every cell live entirely in Screen RAM, so no
-            // .co.prg or .bg.prg files are produced here (unlike the multicolor converter below).
-        }
-        else
-        {
-            MulticolorConverter converter = new MulticolorConverter();
-            C64MulticolorData result = converter.ConvertImage(magickImage, UseDithering, BrightnessBias, BrightnessMode);
-
-            prg = new PrgFile(PixelAddress, result.BitmapData);
-            prg.Save(filename + ".bm.prg");
-            prg = new PrgFile(ColorAddress, result.ScreenRam);
-            prg.Save(filename + ".sc.prg");
-            prg = new PrgFile(0xD800, result.ColorRam);
+            prg = new PrgFile(0xD800, multicolorResult.ColorRam);
             prg.Save(filename + ".co.prg");
 
-            // Background color (VIC-II "00" bit-pattern) is a single, screen-wide register value.
-            // By default it targets $D021 directly: loading this 1-byte PRG with
-            // LOAD"filename.bg.prg",8,1 writes the byte straight into the background
-            // color register, since $D021 sits in the CPU-visible I/O area.
-            prg = new PrgFile(BackgroundAddress, new byte[] { result.BackgroundColor });
+            prg = new PrgFile(BackgroundAddress, new byte[] { multicolorResult.BackgroundColor });
             prg.Save(filename + ".bg.prg");
         }
     }

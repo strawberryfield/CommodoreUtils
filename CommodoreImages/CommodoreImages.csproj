@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Casasoft.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>Casasoft.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <AssemblyTitle>Casasoft.Commodore.Images</AssemblyTitle>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Authors>Roberto Ceccarelli</Authors>
+    <Company>Casasoft</Company>
+    <Copyright>copyright (c) 2025-2026 Roberto Ceccarelli - Casasoft</Copyright>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Version>1.0.2</Version>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/strawberryfield/CommodoreUtils</PackageProjectUrl>
+    <Title>Casasoft Commodore Images</Title>
+    <RepositoryUrl>https://github.com/strawberryfield/CommodoreUtils/tree/master/CommodoreImages</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Product>Casasoft Commodore Images</Product>
+    <Description>A library for converting images to Commodore 64 bitmap formats (multicolor and hires).
+Provides C64MulticolorData, C64HiresData, C64Palette, MulticolorConverter and HiresConverter classes.</Description>
+    <PackageIcon>icon.jpg</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.151.0-preview.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="icon.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

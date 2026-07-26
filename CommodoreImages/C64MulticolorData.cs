@@ -17,7 +17,7 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
-namespace Casasoft.Commodore;
+namespace Casasoft.Commodore.Images;
 
 /// <summary>
 /// Represents the multicolor graphics data for a Commodore 64 display.

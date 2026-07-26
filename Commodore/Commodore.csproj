@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -18,26 +18,8 @@
     <PackageProjectUrl>https://github.com/strawberryfield/CommodoreUtils</PackageProjectUrl>
     <Title>Casasoft Commodore Utils</Title>
     <RepositoryUrl>https://github.com/strawberryfield/CommodoreUtils</RepositoryUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Product>Casasoft Commodore Utils</Product>
-    <Description>A small utility library for reading, writing and generating Commodore PRG files in .NET.
-</Description>
-    <PackageIcon>icon.jpg</PackageIcon>
+    <Description>A small utility library for reading, writing and generating Commodore PRG files in .NET.</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="4.151.0-preview.2.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="icon.jpg">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Update="README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
 
 </Project>

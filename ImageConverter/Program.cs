@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------------
 
 using Casasoft.Commodore;
-using Casasoft.Commodore.Prg;
+using Casasoft.Commodore.Images;
 using Casasoft.Helpers;
 using Mono.Options;
 

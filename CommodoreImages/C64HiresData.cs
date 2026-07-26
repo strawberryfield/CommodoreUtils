@@ -17,7 +17,7 @@
 // but WITHOUT ANY WARRANTY
 //-----------------------------------------------------------------------
 
-namespace Casasoft.Commodore;
+namespace Casasoft.Commodore.Images;
 
 /// <summary>
 /// Represents the hires (2-color, standard bitmap) graphics data for a Commodore 64 display.

@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Commodore\Commodore.csproj" />
+    <ProjectReference Include="..\CommodoreImages\CommodoreImages.csproj" />
     <ProjectReference Include="..\Helpers\Helpers.csproj" />
   </ItemGroup>
 

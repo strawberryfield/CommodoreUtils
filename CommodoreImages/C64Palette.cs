@@ -1,4 +1,4 @@
-﻿//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 // <copyright file="C64Palette.cs" company="Casasoft">
 //     Author: Roberto Ceccarelli (http://strawberryfield.altervista.org)
 //     Copyright (c) 2026 All rights reserved.
@@ -19,7 +19,7 @@
 
 using System.Drawing;
 
-namespace Casasoft.Commodore;
+namespace Casasoft.Commodore.Images;
 
 /// <summary>
 /// Provides palette definitions and color utilities for the Commodore 64.

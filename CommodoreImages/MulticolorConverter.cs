@@ -22,38 +22,6 @@ using ImageMagick;
 namespace Casasoft.Commodore.Images;
 
 /// <summary>
-/// Controls at which stage(s) of the conversion pipeline the brightness bias
-/// (see <see cref="MulticolorConverter.ConvertImage"/>) is applied.
-/// </summary>
-/// <remarks>
-/// The brightness bias can influence two distinct decisions:
-/// <list type="bullet">
-/// <item><description><b>Quantization</b>: which C64 palette color each source pixel is mapped to
-/// (during dithering or plain nearest-color quantization). Biasing this stage nudges individual
-/// pixels towards brighter palette colors whenever two candidate colors are near-equidistant in
-/// RGB space, regardless of how "noisy"/dithered the image is.</description></item>
-/// <item><description><b>Selection</b>: which colors are chosen as the screen-wide background and
-/// the per-cell foreground colors, based on already-quantized pixel color frequency counts.
-/// Biasing this stage only changes the outcome when candidate colors have comparable counts;
-/// it has no effect when one color is overwhelmingly dominant (e.g. large flat/undithered areas).</description></item>
-/// </list>
-/// </remarks>
-public enum BrightnessBiasMode
-{
-    /// <summary>No brightness bias is applied anywhere; behaves as if brightnessBias were 0.</summary>
-    None,
-
-    /// <summary>Brightness bias is applied only when quantizing pixels to the C64 palette.</summary>
-    Quantization,
-
-    /// <summary>Brightness bias is applied only when selecting background/foreground colors from frequency counts.</summary>
-    Selection,
-
-    /// <summary>Brightness bias is applied both at quantization time and at background/foreground selection time (default).</summary>
-    Both
-}
-
-/// <summary>
 /// Converts RGB images to Commodore 64 multicolor bitmap format using Magick.NET (ImageMagick).
 ///
 /// This class implements a three-stage conversion process:
@@ -74,7 +42,7 @@ public enum BrightnessBiasMode
 /// <item><description>bit-pattern 11 -&gt; Color RAM low nibble (per cell)</description></item>
 /// </list>
 /// </summary>
-public class MulticolorConverter
+public class MulticolorConverter : C64BitmapConverterBase
 {
     /// <summary>The width of the C64 screen in multicolor pixels (160).</summary>
     private const int SCREEN_WIDTH = 160;
@@ -87,36 +55,6 @@ public class MulticolorConverter
 
     /// <summary>The height, in pixels, of a character cell (8).</summary>
     private const int CELL_PIXEL_HEIGHT = 8;
-
-    /// <summary>Number of character columns on screen (40).</summary>
-    private const int CHAR_COLUMNS = 40;
-
-    /// <summary>Number of character rows on screen (25).</summary>
-    private const int CHAR_ROWS = 25;
-
-    /// <summary>
-    /// Perceptual luminance (0..255) of each C64 palette color, used to bias color selection
-    /// towards brighter colors when picking the background and per-cell foreground colors.
-    /// </summary>
-    private static readonly double[] PaletteLuminance = C64Palette.ColorsRgb
-        .Select(c => 0.299 * c.r + 0.587 * c.g + 0.114 * c.b)
-        .ToArray();
-
-    /// <summary>
-    /// Represents accumulated color error values for Floyd-Steinberg dithering.
-    /// Stores separate error values for red, green, and blue channels.
-    /// </summary>
-    private struct Error
-    {
-        /// <summary>Red channel error accumulation.</summary>
-        public double R;
-
-        /// <summary>Green channel error accumulation.</summary>
-        public double G;
-
-        /// <summary>Blue channel error accumulation.</summary>
-        public double B;
-    }
 
     /// <summary>
     /// Converts an RGB image to C64 multicolor format.
@@ -170,144 +108,6 @@ public class MulticolorConverter
         GenerateMulticolorData(quantized, result, selectionBias);
 
         return result;
-    }
-
-    /// <summary>
-    /// Downscales the input image to C64 screen dimensions (160x200).
-    /// </summary>
-    /// <param name="input">The source image to downscale.</param>
-    /// <returns>A new <see cref="MagickImage"/> resized to 160x200 pixels.</returns>
-    private MagickImage DownscaleImage(MagickImage input)
-    {
-        var output = (MagickImage)input.Clone();
-        output.HasAlpha = false;
-
-        // Linear filter with mipmap-like smoothing, equivalent to a high-quality resize.
-        output.FilterType = FilterType.Triangle;
-
-        var geometry = new MagickGeometry((uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT)
-        {
-            IgnoreAspectRatio = true
-        };
-        output.Resize(geometry);
-
-        return output;
-    }
-
-    /// <summary>
-    /// Applies Floyd-Steinberg dithering to convert the image to the C64 color palette.
-    /// </summary>
-    /// <param name="input">The 160x200 image to dither.</param>
-    /// <param name="brightnessBias">
-    /// Brightness bias applied while picking the closest C64 palette color for each pixel (see
-    /// <see cref="FindClosestColorBiased"/>). <c>0.0</c> reproduces the original unbiased nearest-color
-    /// behavior.
-    /// </param>
-    /// <returns>A dithered <see cref="MagickImage"/> with colors quantized to the C64 palette.</returns>
-    private MagickImage ApplyDithering(MagickImage input, double brightnessBias = 0.0)
-    {
-        var output = new MagickImage(MagickColors.Black, (uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT);
-        output.HasAlpha = false;
-        var errorBuffer = new Error[SCREEN_WIDTH + 2, SCREEN_HEIGHT + 2];
-
-        using var inputPixels = input.GetPixels();
-        using var outputPixels = output.GetPixels();
-
-        // Process each pixel
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
-        {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
-            {
-                var pixel = inputPixels.GetPixel(x, y).ToColor()!;
-
-                // Add error diffusion
-                int r = pixel.R + (int)Math.Round(errorBuffer[x, y].R);
-                int g = pixel.G + (int)Math.Round(errorBuffer[x, y].G);
-                int b = pixel.B + (int)Math.Round(errorBuffer[x, y].B);
-
-                // Clamp values
-                r = Math.Max(0, Math.Min(255, r));
-                g = Math.Max(0, Math.Min(255, g));
-                b = Math.Max(0, Math.Min(255, b));
-
-                // Find closest C64 color, optionally biased towards brighter palette colors
-                int closestColor = FindClosestColorBiased((byte)r, (byte)g, (byte)b, brightnessBias);
-                var c64Color = C64Palette.ColorsRgb[closestColor];
-
-                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
-
-                // Calculate error
-                int errR = r - c64Color.r;
-                int errG = g - c64Color.g;
-                int errB = b - c64Color.b;
-
-                // Floyd-Steinberg error diffusion
-                if (x < SCREEN_WIDTH - 1)
-                {
-                    errorBuffer[x + 1, y].R += errR * 7.0 / 16.0;
-                    errorBuffer[x + 1, y].G += errG * 7.0 / 16.0;
-                    errorBuffer[x + 1, y].B += errB * 7.0 / 16.0;
-                }
-                if (x > 0)
-                {
-                    errorBuffer[x - 1, y + 1].R += errR * 3.0 / 16.0;
-                    errorBuffer[x - 1, y + 1].G += errG * 3.0 / 16.0;
-                    errorBuffer[x - 1, y + 1].B += errB * 3.0 / 16.0;
-                }
-                if (y < SCREEN_HEIGHT - 1)
-                {
-                    errorBuffer[x, y + 1].R += errR * 5.0 / 16.0;
-                    errorBuffer[x, y + 1].G += errG * 5.0 / 16.0;
-                    errorBuffer[x, y + 1].B += errB * 5.0 / 16.0;
-                }
-                if (x < SCREEN_WIDTH - 1 && y < SCREEN_HEIGHT - 1)
-                {
-                    errorBuffer[x + 1, y + 1].R += errR * 1.0 / 16.0;
-                    errorBuffer[x + 1, y + 1].G += errG * 1.0 / 16.0;
-                    errorBuffer[x + 1, y + 1].B += errB * 1.0 / 16.0;
-                }
-            }
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Converts the image to the C64 color palette by mapping each pixel to its closest palette color,
-    /// with no error diffusion (i.e. no dithering).
-    /// </summary>
-    /// <param name="input">The 160x200 image to quantize.</param>
-    /// <param name="brightnessBias">
-    /// Brightness bias applied while picking the closest C64 palette color for each pixel (see
-    /// <see cref="FindClosestColorBiased"/>). <c>0.0</c> reproduces the original unbiased nearest-color
-    /// behavior. Since undithered quantization produces large flat-color regions with no near-tie frequency
-    /// counts, this is the only way to make the brightness bias visibly affect undithered output — biasing
-    /// only the background/foreground selection stage has little to no effect here.
-    /// </param>
-    /// <returns>A quantized <see cref="MagickImage"/> with colors mapped to the C64 palette, without dithering.</returns>
-    private MagickImage ApplyQuantization(MagickImage input, double brightnessBias = 0.0)
-    {
-        var output = new MagickImage(MagickColors.Black, (uint)SCREEN_WIDTH, (uint)SCREEN_HEIGHT);
-        output.HasAlpha = false;
-
-        using var inputPixels = input.GetPixels();
-        using var outputPixels = output.GetPixels();
-
-        for (int y = 0; y < SCREEN_HEIGHT; y++)
-        {
-            for (int x = 0; x < SCREEN_WIDTH; x++)
-            {
-                var pixel = inputPixels.GetPixel(x, y).ToColor()!;
-
-                // Find closest C64 color, optionally biased towards brighter palette colors; no error diffusion applied
-                int closestColor = FindClosestColorBiased(pixel.R, pixel.G, pixel.B, brightnessBias);
-                var c64Color = C64Palette.ColorsRgb[closestColor];
-
-                outputPixels.SetPixel(x, y, new byte[] { c64Color.r, c64Color.g, c64Color.b });
-            }
-        }
-
-        return output;
     }
 
     /// <summary>
@@ -413,87 +213,6 @@ public class MulticolorConverter
             }
         }
         return best;
-    }
-
-    /// <summary>
-    /// Computes a multiplicative weight for palette color <paramref name="colorIndex"/> based on its
-    /// luminance: colors brighter than mid-gray get a weight above 1.0 (favored), darker colors get a
-    /// weight below 1.0 (penalized). Used to nudge color-frequency-based selection towards brighter
-    /// colors without ignoring frequency entirely.
-    /// </summary>
-    /// <param name="colorIndex">Index (0-15) into the C64 palette.</param>
-    /// <param name="brightnessBias">Bias strength (0.0 = no effect); see <see cref="ConvertImage"/>.</param>
-    private static double BrightnessWeight(int colorIndex, double brightnessBias) =>
-        1.0 + brightnessBias * (PaletteLuminance[colorIndex] / 255.0 - 0.5);
-
-    /// <summary>
-    /// Finds the index of the closest matching C64 palette color for a given RGB value, optionally biasing
-    /// the choice towards brighter palette colors.
-    /// </summary>
-    /// <param name="r">The red component (0-255).</param>
-    /// <param name="g">The green component (0-255).</param>
-    /// <param name="b">The blue component (0-255).</param>
-    /// <param name="brightnessBias">
-    /// Bias strength; <c>0.0</c> makes this behave exactly like <see cref="C64Palette.FindClosestColor"/>
-    /// (plain nearest-color by Euclidean RGB distance). Positive values divide each candidate color's squared
-    /// distance by its <see cref="BrightnessWeight"/>, so brighter colors effectively appear "closer" and win
-    /// ties or near-ties against darker colors; strongly dominant colors (much closer in RGB space than any
-    /// alternative) are still selected regardless of bias, since the bias only reshuffles close calls.
-    /// </param>
-    /// <returns>The index (0-15) of the selected C64 palette color.</returns>
-    /// <remarks>
-    /// Unlike <see cref="BrightnessWeight"/>-based frequency selection (used for background/foreground color
-    /// picking after quantization), this method operates at the individual-pixel level, so it also affects
-    /// undithered (flat, plain nearest-color) quantization output, where large uniform regions would otherwise
-    /// be completely unaffected by a purely count-based bias.
-    /// </remarks>
-    private static int FindClosestColorBiased(byte r, byte g, byte b, double brightnessBias)
-    {
-        if (brightnessBias == 0.0)
-        {
-            return C64Palette.FindClosestColor(r, g, b);
-        }
-
-        int closestIndex = 0;
-        double minScore = double.MaxValue;
-
-        for (int i = 0; i < C64Palette.ColorsRgb.Length; i++)
-        {
-            var c = C64Palette.ColorsRgb[i];
-            int dr = r - c.r;
-            int dg = g - c.g;
-            int db = b - c.b;
-            double distance = dr * dr + dg * dg + db * db;
-
-            // Dividing by the brightness weight makes brighter colors "appear" closer than they
-            // strictly are, biasing near-ties (and only near-ties) towards brighter palette entries.
-            double score = distance / BrightnessWeight(i, brightnessBias);
-
-            if (score < minScore)
-            {
-                minScore = score;
-                closestIndex = i;
-            }
-        }
-
-        return closestIndex;
-    }
-
-    /// <summary>
-    /// Extracts the color indices of a CELL_PIXEL_WIDTH x CELL_PIXEL_HEIGHT block starting at (startX, startY).
-    /// </summary>
-    private int[] ExtractBlockColors(int[,] colorIndices, int startX, int startY)
-    {
-        var colors = new int[CELL_PIXEL_WIDTH * CELL_PIXEL_HEIGHT];
-        int index = 0;
-        for (int y = 0; y < CELL_PIXEL_HEIGHT; y++)
-        {
-            for (int x = 0; x < CELL_PIXEL_WIDTH; x++)
-            {
-                colors[index++] = colorIndices[startX + x, startY + y];
-            }
-        }
-        return colors;
     }
 
     /// <summary>

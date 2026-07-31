@@ -1,56 +1,92 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project>
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <AssemblyName>Casasoft.ImageConverterGUI</AssemblyName>
-    <RootNamespace>Casasoft.ImageConverterGUI</RootNamespace>
-  </PropertyGroup>
+	<!--
+    Import esplicito "a due passi" (Sdk.props in testa, Sdk.targets in coda) invece della
+    forma abbreviata <Project Sdk="Microsoft.NET.Sdk">. È perfettamente equivalente (è
+    proprio quello a cui la forma abbreviata viene espansa da MSBuild), ma qui serve per
+    poter scrivere del contenuto DOPO l'import di Sdk.targets: vedi il target
+    "PruneUnwantedRuntimeDirs" più sotto per il motivo.
+  -->
+	<Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
-  <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.1.0" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
-    <PackageReference Include="Casasoft.Avalonia.Controls" Version="1.0.0" />
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
-    <!--
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+		<AssemblyName>ImageConverterGUI</AssemblyName>
+		<RootNamespace>Casasoft.ImageConverterGUI</RootNamespace>
+		<RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="12.1.1" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+		<PackageReference Include="Casasoft.Avalonia.Controls" Version="1.0.0" />
+		<PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.16.0" />
+		<!--
       Deliberately the SAME quantum depth (Q8) used by CommodoreImages.csproj, so that the
       MagickImage type produced by the converters can be used directly in this project.
       See the note on the Casasoft.Avalonia.Controls reference below.
     -->
-  </ItemGroup>
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Commodore\Commodore.csproj" />
-    <ProjectReference Include="..\CommodoreImages\CommodoreImages.csproj" />
-    <ProjectReference Include="..\Helpers\Helpers.csproj" />
+	<ItemGroup>
+		<ProjectReference Include="..\Commodore\Commodore.csproj" />
+		<ProjectReference Include="..\CommodoreImages\CommodoreImages.csproj" />
+		<ProjectReference Include="..\Helpers\Helpers.csproj" />
 
-    <!--
-      Casasoft.Avalonia.Controls (FileTextBox, FileTextBoxLabel, NumericUpDown, ImageViewer)
-      lives in the separate "Contemporary_CDV" repository/solution. Adjust the relative path
-      below to match your local checkout layout, e.g.:
-
-        ..\..\Contemporary_CDV\Casasoft.Avalonia.Controls\Casasoft.Avalonia.Controls.csproj
-
+		<!--
       IMPORTANT: that project's README states it depends on Magick.NET-Q16-AnyCPU (only used
       internally by ImageViewer.SetImage(MagickImage)). This GUI intentionally never calls that
       overload - see ToAvaloniaBitmap() in MainWindow.axaml.cs - and instead sets ImageViewer.Source
       (a plain Avalonia Bitmap) directly, so the Q8 (here) / Q16 (there) quantum-depth mismatch
       never causes a type conflict, even though both packages are present in the build.
     -->
-  </ItemGroup>
+	</ItemGroup>
+
+	<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
 	<!--
-    No explicit <AvaloniaResource> entries needed: the Avalonia SDK already globs
-    **/*.axaml as AvaloniaResource by default. Adding it again here would cause
-    MainWindow.axaml to be compiled twice, producing "Duplicate x:Class directive".
-  -->
+    <RuntimeIdentifiers> (plurale) non filtra in modo affidabile cosa viene copiato in
+    bin\...\net10.0\runtimes durante una normale build (solo publish -r <rid> singolo lo fa
+    correttamente): problema noto dei pacchetti nativi SkiaSharp/HarfBuzzSharp usati da
+    Avalonia. Come workaround, dopo ogni build ripuliamo "runtimes" tenendo solo le RID
+    che ci interessano davvero.
+    NB: si usa $(TargetDir), non $(OutDir): quest'ultimo NON include la sottocartella
+    del target framework (net10.0) nei progetti SDK-style, quindi puntava a una cartella
+    inesistente e il target non faceva nulla.
 
+    NB: durante "dotnet publish" l'output NON va in $(TargetDir) ma in $(PublishDir),
+    quindi un pruning che guarda solo $(TargetDir) non ripulisce nulla in fase di publish
+    (e su build "normale" $(PublishDir) è vuoto). Per questo controlliamo entrambe le cartelle.
+
+    IMPORTANTE - ordine di esecuzione: questo target ha AfterTargets="Build;Publish", come
+    l'hook interno dell'SDK che copia davvero i file nativi RID in bin\...\runtimes (parte
+    di Sdk.targets). Quando due target condividono lo stesso AfterTargets, MSBuild li esegue
+    nell'ordine in cui sono stati "registrati", che segue l'ordine con cui il progetto
+    espanso viene letto: import/contenuto più in alto nel file = registrato prima = eseguito
+    prima. Con la forma abbreviata <Project Sdk="Microsoft.NET.Sdk">, Sdk.targets viene
+    importato implicitamente subito prima di </Project>, quindi DOPO qualunque <Target>
+    scritto esplicitamente nel file: il nostro pruning partiva PRIMA che l'SDK avesse
+    ancora copiato i runtimes, trovando la cartella vuota (da cui il log "Pruning unwanted
+    runtime dirs: " senza nulla dopo i due punti). Per questo il progetto usa la forma
+    esplicita a due import (Sdk.props in testa, Sdk.targets sopra questo commento): scrivendo
+    il target QUI, dopo l'import esplicito di Sdk.targets, la sua registrazione avviene dopo
+    quella dell'SDK e quindi viene eseguito per ultimo, quando bin\...\runtimes è già pieno.
+  -->
+	<Target Name="PruneUnwantedRuntimeDirs" AfterTargets="Build;Publish">
+		<ItemGroup>
+			<_RuntimeSubDirs Include="$([System.IO.Directory]::GetDirectories('$(TargetDir)runtimes'))" Condition="Exists('$(TargetDir)runtimes')" />
+			<_RuntimeSubDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" Condition="'$(PublishDir)' != '' AND Exists('$(PublishDir)runtimes')" />
+		</ItemGroup>
+		<Message Importance="high" Text="Pruning unwanted runtime dirs: @(_RuntimeSubDirs)" />
+		<RemoveDir Directories="@(_RuntimeSubDirs)" Condition="'%(Filename)' != 'win-x64' AND '%(Filename)' != 'linux-x64' AND '%(Filename)' != 'osx-arm64'" />
+	</Target>
 
 </Project>

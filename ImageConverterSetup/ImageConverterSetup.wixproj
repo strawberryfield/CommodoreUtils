@@ -1,0 +1,19 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>ImageConverterSetup</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <PublishDirCLI Condition="'$(PublishDirCLI)' == ''">..\temp_publish\ImageConverter</PublishDirCLI>
+    <PublishDirGUI Condition="'$(PublishDirGUI)' == ''">..\temp_publish\ImageConverterGUI</PublishDirGUI>
+    <DefineConstants>PublishDirCLI=$(PublishDirCLI);PublishDirGUI=$(PublishDirGUI)</DefineConstants>
+    <OutputPath>..\publish\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="banner.bmp" />
+    <Content Include="cover.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

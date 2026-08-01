@@ -20,7 +20,12 @@
 		<AssemblyName>ImageConverterGUI</AssemblyName>
 		<RootNamespace>Casasoft.ImageConverterGUI</RootNamespace>
 		<RuntimeIdentifiers>win-x64;linux-x64;osx-arm64</RuntimeIdentifiers>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="icon.ico" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="12.1.1" />

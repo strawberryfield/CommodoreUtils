@@ -1,0 +1,277 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  
+  <Package Name="C64 ImageConverter"
+           Manufacturer="Casasoft"
+           Version="1.0.0.0"
+           UpgradeCode="a7b8c9d0-1234-4567-89ab-cdef01234567"
+           Scope="perMachine"
+           Language="1033">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of ImageConverter is already installed." />
+
+    <!-- Embed the cabinet file (.cab) directly inside the .msi installer -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Background image for the welcome and completion screens -->
+    <WixVariable Id="WixUIDialogBmp" Value="cover.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
+
+    <!-- GNU AGPL v3 License in RTF format -->
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <!-- Properties to enable/disable Start Menu and Desktop shortcuts -->
+    <Property Id="ADDSTARTMENUSHORTCUT" Value="1" />
+    <Property Id="ADDDESKTOPSHORTCUT" Value="1" />
+
+    <!-- WiX FeatureTree UI (License + Feature Selection + Target Folder) with shortcuts page -->
+    <UI>
+      <ui:WixUI Id="WixUI_FeatureTree" />
+
+      <!-- Navigation override: CustomizeDlg Next → ShortcutDlg (instead of VerifyReadyDlg) -->
+      <Publish Dialog="CustomizeDlg" Control="Next" Event="NewDialog" Value="ShortcutDlg" Order="5" />
+      <!-- Navigation override: VerifyReadyDlg Back → ShortcutDlg (instead of CustomizeDlg) -->
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ShortcutDlg" Order="5" />
+      <!-- ShortcutDlg navigation -->
+      <Publish Dialog="ShortcutDlg" Control="Back" Event="NewDialog" Value="CustomizeDlg" Order="1" />
+      <Publish Dialog="ShortcutDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="1" />
+
+      <Dialog Id="ShortcutDlg" Width="370" Height="270" Title="!(loc.InstallDirDlg_Title)">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Application Shortcuts" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Choose whether to create shortcuts for ImageConverter GUI." />
+
+        <Control Id="StartMenuCheckBox" Type="CheckBox" X="20" Y="70" Width="330" Height="18" Property="ADDSTARTMENUSHORTCUT" CheckBoxValue="1" Text="Create Start Menu shortcut" />
+        <Control Id="DesktopCheckBox" Type="CheckBox" X="20" Y="95" Width="330" Height="18" Property="ADDDESKTOPSHORTCUT" CheckBoxValue="1" Text="Create Desktop shortcut" />
+
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+
+    <!-- Check for .NET 10.0 runtime (Host / Shared Runtime) -->
+    <Property Id="NETCOREHOSTVERSION">
+      <RegistrySearch Id="NetCoreHostVerSearch"
+                      Root="HKLM"
+                      Key="SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost"
+                      Name="Version"
+                      Type="raw" />
+    </Property>
+
+    <Property Id="NET10DESKTOPINSTALLED">
+      <DirectorySearch Id="DotnetShareDir" Path="[ProgramFiles64Folder]dotnet\shared\Microsoft.WindowsDesktop.App">
+        <DirectorySearch Id="Net10DesktopDir" Path="10.0.0" Depth="2" />
+      </DirectorySearch>
+    </Property>
+
+    <Launch Message="This installation requires the Microsoft .NET 10.0 runtime to work.&#13;&#10;&#13;&#10;You can download and install .NET 10.0 from the official Microsoft website:&#13;&#10;https://dotnet.microsoft.com/download/dotnet/10.0"
+            Condition="Installed OR NETCOREHOSTVERSION &gt;= &quot;10.0&quot; OR NET10DESKTOPINSTALLED" />
+
+    <!-- Directory Structure -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ManufacturerFolder" Name="Casasoft">
+        <Directory Id="INSTALLFOLDER" Name="ImageConverter" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Casasoft" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- Feature Tree -->
+    <Feature Id="FeatureCLI" Title="ImageConverter (CLI)" Level="1" ConfigurableDirectory="INSTALLFOLDER" Description="ImageConverter command-line tool for C64 image conversion.">
+      <ComponentGroupRef Id="CmpGroup_CLI" />
+      <ComponentGroupRef Id="CmpGroup_Shared" />
+    </Feature>
+
+    <Feature Id="FeatureGUI" Title="ImageConverter GUI" Level="1" ConfigurableDirectory="INSTALLFOLDER" Description="ImageConverterGUI graphical interface (Avalonia) for C64 image conversion.">
+      <ComponentGroupRef Id="CmpGroup_GUI" />
+      <ComponentGroupRef Id="CmpGroup_Shared" />
+      <ComponentRef Id="Cmp_GuiShortcut" />
+      <ComponentRef Id="Cmp_DesktopGuiShortcut" />
+    </Feature>
+
+    <!-- Shared Components between CLI and GUI -->
+    <ComponentGroup Id="CmpGroup_Shared" Directory="INSTALLFOLDER">
+      <Component Id="Cmp_CasasoftCommodoreDll">
+        <File Source="$(var.PublishDirCLI)\Casasoft.Commodore.dll" />
+      </Component>
+      <Component Id="Cmp_CasasoftCommodoreImagesDll">
+        <File Source="$(var.PublishDirCLI)\Casasoft.CommodoreImages.dll" />
+      </Component>
+      <Component Id="Cmp_CasasoftHelpersDll">
+        <File Source="$(var.PublishDirCLI)\Casasoft.Helpers.dll" />
+      </Component>
+      <Component Id="Cmp_MagickNetQ16AnyCPU">
+        <File Source="$(var.PublishDirCLI)\Magick.NET-Q16-AnyCPU.dll" />
+      </Component>
+      <Component Id="Cmp_MagickNetCore">
+        <File Source="$(var.PublishDirCLI)\Magick.NET.Core.dll" />
+      </Component>
+      <Component Id="Cmp_MagickNativeQ16x64">
+        <File Source="$(var.PublishDirCLI)\Magick.Native-Q16-x64.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- ImageConverter CLI specific components -->
+    <ComponentGroup Id="CmpGroup_CLI" Directory="INSTALLFOLDER">
+      <Component Id="Cmp_ImageConverterExe">
+        <File Source="$(var.PublishDirCLI)\ImageConverter.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="Cmp_ImageConverterDll">
+        <File Source="$(var.PublishDirCLI)\ImageConverter.dll" />
+      </Component>
+      <Component Id="Cmp_ImageConverterDeps">
+        <File Source="$(var.PublishDirCLI)\ImageConverter.deps.json" />
+      </Component>
+      <Component Id="Cmp_ImageConverterRuntimeConfig">
+        <File Source="$(var.PublishDirCLI)\ImageConverter.runtimeconfig.json" />
+      </Component>
+      <Component Id="Cmp_MonoOptionsDll">
+        <File Source="$(var.PublishDirCLI)\Mono.Options.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- ImageConverter GUI specific components -->
+    <ComponentGroup Id="CmpGroup_GUI" Directory="INSTALLFOLDER">
+      <Component Id="Cmp_ImageConverterGUIExe">
+        <File Source="$(var.PublishDirGUI)\ImageConverterGUI.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="Cmp_ImageConverterGUIDll">
+        <File Source="$(var.PublishDirGUI)\ImageConverterGUI.dll" />
+      </Component>
+      <Component Id="Cmp_ImageConverterGUIDeps">
+        <File Source="$(var.PublishDirGUI)\ImageConverterGUI.deps.json" />
+      </Component>
+      <Component Id="Cmp_ImageConverterGUIRuntimeConfig">
+        <File Source="$(var.PublishDirGUI)\ImageConverterGUI.runtimeconfig.json" />
+      </Component>
+
+      <!-- Avalonia / UI Dependencies -->
+      <Component Id="Cmp_AvaloniaBase">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Base.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaControls">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Controls.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaDesignerSupport">
+        <File Source="$(var.PublishDirGUI)\Avalonia.DesignerSupport.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaDesktop">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Desktop.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaDialogs">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Dialogs.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaFontsInter">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Fonts.Inter.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaFreeDesktopAtSpi">
+        <File Source="$(var.PublishDirGUI)\Avalonia.FreeDesktop.AtSpi.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaFreeDesktop">
+        <File Source="$(var.PublishDirGUI)\Avalonia.FreeDesktop.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaHarfBuzz">
+        <File Source="$(var.PublishDirGUI)\Avalonia.HarfBuzz.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaMarkupXaml">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Markup.Xaml.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaMarkup">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Markup.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaMetal">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Metal.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaMicroCom">
+        <File Source="$(var.PublishDirGUI)\Avalonia.MicroCom.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaNative">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Native.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaOpenGL">
+        <File Source="$(var.PublishDirGUI)\Avalonia.OpenGL.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaRemoteProtocol">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Remote.Protocol.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaSkia">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Skia.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaThemesFluent">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Themes.Fluent.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaVulkan">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Vulkan.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaWin32Automation">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Win32.Automation.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaWin32">
+        <File Source="$(var.PublishDirGUI)\Avalonia.Win32.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaX11">
+        <File Source="$(var.PublishDirGUI)\Avalonia.X11.dll" />
+      </Component>
+      <Component Id="Cmp_AvaloniaDll">
+        <File Source="$(var.PublishDirGUI)\Avalonia.dll" />
+      </Component>
+
+      <!-- Other GUI components -->
+      <Component Id="Cmp_CasasoftAvaloniaControls">
+        <File Source="$(var.PublishDirGUI)\Casasoft.Avalonia.Controls.dll" />
+      </Component>
+      <Component Id="Cmp_HarfBuzzSharp">
+        <File Source="$(var.PublishDirGUI)\HarfBuzzSharp.dll" />
+      </Component>
+      <Component Id="Cmp_libHarfBuzzSharp">
+        <File Source="$(var.PublishDirGUI)\libHarfBuzzSharp.dll" />
+      </Component>
+      <Component Id="Cmp_SkiaSharp">
+        <File Source="$(var.PublishDirGUI)\SkiaSharp.dll" />
+      </Component>
+      <Component Id="Cmp_libSkiaSharp">
+        <File Source="$(var.PublishDirGUI)\libSkiaSharp.dll" />
+      </Component>
+      <Component Id="Cmp_MicroComRuntime">
+        <File Source="$(var.PublishDirGUI)\MicroCom.Runtime.dll" />
+      </Component>
+      <Component Id="Cmp_TmdsDBusProtocol">
+        <File Source="$(var.PublishDirGUI)\Tmds.DBus.Protocol.dll" />
+      </Component>
+      <Component Id="Cmp_avLibGlesV2">
+        <File Source="$(var.PublishDirGUI)\av_libglesv2.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu shortcut for GUI -->
+    <Component Id="Cmp_GuiShortcut" Directory="ApplicationProgramsFolder" Condition="ADDSTARTMENUSHORTCUT = 1 OR Installed">
+      <Shortcut Id="StartMenuGuiShortcut"
+                Name="ImageConverter GUI"
+                Description="ImageConverter with Graphical Interface"
+                Target="[INSTALLFOLDER]ImageConverterGUI.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Casasoft\ImageConverter" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- Desktop shortcut for GUI -->
+    <Component Id="Cmp_DesktopGuiShortcut" Directory="DesktopFolder" Condition="ADDDESKTOPSHORTCUT = 1 OR Installed">
+      <Shortcut Id="DesktopGuiShortcut"
+                Name="ImageConverter GUI"
+                Description="ImageConverter with Graphical Interface"
+                Target="[INSTALLFOLDER]ImageConverterGUI.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKCU" Key="Software\Casasoft\ImageConverter" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+  </Package>
+</Wix>

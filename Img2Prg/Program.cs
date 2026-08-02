@@ -18,7 +18,6 @@
 //-----------------------------------------------------------------------
 
 using Casasoft.Commodore;
-using Casasoft.Commodore.Prg;
 using Casasoft.Helpers;
 using Mono.Options;
 

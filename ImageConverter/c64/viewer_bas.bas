@@ -1,5 +1,5 @@
 {renumber}
-{step:1}
+{step:10}
 	REM ---------------------------------------------
 	REM  CASASOFT UNIFIED BITMAP VIEWER
 	REM  loads .BM.PRG .SC.PRG [.CO.PRG .BG.PRG] files
@@ -12,15 +12,13 @@
 	REM  select 0 in the list to exit
 	REM ---------------------------------------------
 {nice:100}
-{step:10}
 {:start}
-	IF LD=0 THEN GOSUB {:init}: ld=ld+1: load "loaddir",dv,1
-	if ld=1 then gosub {:readdir}: ld=ld+1
-	if ld=2 then {:askfile}
-	IF LD=3 THEN PRINT ".";: LD=LD+1: LOAD F$+".BM",DV,1
-	IF LD=4 THEN PRINT ".";: LD=LD+1: LOAD F$+".SC",DV,1
+	IF LD=0 THEN GOSUB {:init}: ld=ld+1
+	if ld=1 then {:askfile}
+	IF LD=2 THEN PRINT ".";: LD=LD+1: LOAD F$+".BM",DV,1
+	IF LD=3 THEN PRINT ".";: LD=LD+1: LOAD F$+".SC",DV,1
 	REM --- CHECK IF MULTICOLOR: TRY TO OPEN .CO FILE ---
-	IF LD>5 then {:multicolor}
+	IF LD>4 then {:multicolor}
 	OPEN 15,DV,15,"R0:"+F$+".CO="+F$+".CO": INPUT#15,ER: CLOSE 15
 	IF ER=63 THEN ld=ld+1: GOTO {:multicolor}
 	
@@ -30,8 +28,8 @@
 	
 {:multicolor}
 	REM --- MULTICOLOR: LOAD .CO AND .BG ---
-	if ld=6 then ld=ld+1: PRINT ".";: LOAD F$+".CO",DV,1
-	if ld=7 then ld=ld+1: PRINT ".";: LOAD F$+".BG",DV,1
+	if ld=5 then ld=ld+1: PRINT ".";: LOAD F$+".CO",DV,1
+	if ld=6 then ld=ld+1: PRINT ".";: LOAD F$+".BG",DV,1
 	REM --- ENABLE MULTICOLOR MODE (MCM BIT OF $D016) ---
 	gosub {:commoncfg}: POKE 53270,PEEK(53270) OR 16
 
@@ -45,7 +43,7 @@
 	POKE 53265,OB:POKE 53270,OM:POKE 53272,OP
 	POKE 56576,OC:POKE 53280,OF:POKE 53281,OG
 	PRINT CHR$(147)
-	LD=2
+	LD=1
 	GOTO {:start}
 {nice:500}
 	REM ---------------------------------------------
@@ -58,7 +56,41 @@
 	REM --- ENABLE BITMAP MODE (BMM BIT OF $D011) ---
 	POKE 53265,PEEK(53265) OR 32
 	RETURN
-	
+{nice:700}
+	REM ---------------------------------------------
+	REM --- READ DISK DIRECTORY VIA "$". EN = TOTAL FILES ---
+	REM --- SCANNED (ANY NAME), NF = HOW MANY END IN ".BM" ---
+	REM --- (WITHOUT THE SUFFIX), STORED INTO NM$(1..NF). ---
+{:dirlist}
+	EN=0
+	OPEN 4,DV,0,"$"
+	FOR X=1 TO 6 :GET#4,A$:NEXT  'skip first line
+{:read_header_loop}	
+	GET#4,A$:IF A$<>"" THEN {:read_header_loop}
+{:direntry}
+	print ".";
+	GET#4,A$,A$ 'skip next line ptr
+	IF A$="" THEN {:dirend}
+	GET#4,LL$,LH$ 'get line number / file size
+	GT$="": fl=0
+{:dirname}
+	GET#4,A$
+	IF A$="" OR ST<>0 THEN {:dirchecktype}
+	if A$=chr$(34) then if fl=0 then fl=1: goto {:dirname}
+	if a$=chr$(34) then if fl=1 then fl=0: goto {:dirname}
+	if fl=0 then {:dirname}
+	GT$=GT$+A$
+	GOTO {:dirname}
+{:dirchecktype}
+	REM --- KEEP ONLY NAMES ENDING IN ".BM" ---
+	IF LEN(GT$)<3 THEN {:direntry}
+	IF RIGHT$(GT$,3)<>".BM" THEN {:direntry}
+	GT$=LEFT$(GT$,LEN(GT$)-3)
+	EN=EN+1
+	NM$(EN)=GT$
+	goto {:direntry}
+{:dirend}
+	CLOSE 4
 {nice:1500}
 	REM ---------------------------------------------
 	REM --- SHOW IMAGE LIST AND ASK USER TO PICK ONE ---
@@ -78,7 +110,7 @@
 	IF SN<1 OR SN>EN THEN {:asknum}
 	F$=NM$(SN)
 	PRINT "{down} LOADING.";
-	LD=3
+	LD=2
 	goto {:start}
 {nice:2000}
 	REM ---------------------------------------------
@@ -101,33 +133,12 @@
 	OB=PEEK(53265):OM=PEEK(53270):OP=PEEK(53272)
 	OC=PEEK(56576):OF=PEEK(53280):OG=PEEK(53281)
 	DIM NM$(144): EN=0
-	RETURN
-
-{:readdir}
-	GOSUB {:header}
-	PRINT " READING DIRECTORY..."
 	
-	REM --- CHIAMA LA ROUTINE ASSEMBLY A $C000 (49152) ---
-	SYS 49152
-	
-	REM --- LEGGE IL NUMERO DI FILE TROVATI DA $C3FF (50175) ---
-	EN = PEEK(50175)
-	IF EN = 0 THEN {:nodir}
-	
-	REM --- COPIA I NOMI DALLA TABELLA $C400 (50176) ALLE STRINGHE BASIC ---
-	AD = 50176
-	FOR FI = 1 TO EN
-		GT$ = ""
-		FOR I = 0 TO 15
-			C = PEEK(AD + I)
-			IF C <> 32 THEN GT$ = GT$ + CHR$(C) : REM 32 = SPAZIO
-		NEXT I
-		NM$(FI) = GT$
-		AD = AD + 16
-	NEXT FI
-	RETURN
-
-{:nodir}
+	REM --- READ DIRECTORY ---
+	gosub {:header}
+	PRINT " READING DIRECTORY"
+	GOSUB {:dirlist}
+	IF EN>0 THEN RETURN
 	PRINT "{down} NO .BM IMAGES FOUND"
 	PRINT "{down} PRESS A KEY TO EXIT";
 	GOSUB {:pause}
